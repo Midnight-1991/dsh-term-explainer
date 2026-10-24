@@ -22,13 +22,19 @@ Adds a **Terms** action to finished DeepSeek Harness assistant answers: it detec
 
 方式一：插件市场（上架后）搜索 “Term Explainer” 安装。
 
-方式二：从 GitHub 安装（需要本机已安装 dsh）：
+方式二：从 npm 安装：
+
+```sh
+dsh plugin --profile web add dsh-term-explainer
+```
+
+方式三：从 GitHub 安装（需要本机已安装 dsh）：
 
 ```sh
 dsh plugin --profile web add github:Midnight-1991/dsh-term-explainer
 ```
 
-方式三：本地开发时直接用目录安装：
+方式四：本地开发时直接用目录安装：
 
 ```sh
 dsh plugin --profile web add /path/to/dsh-term-explainer
