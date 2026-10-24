@@ -1,0 +1,50 @@
+{
+  "name": "dsh-term-explainer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Explain computer terms that appear in DeepSeek Harness assistant answers: offline dictionary, per-message entry, no model calls.",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "glossary",
+    "terminology",
+    "computer-science"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Midnight-1991/dsh-term-explainer.git"
+  },
+  "homepage": "https://github.com/Midnight-1991/dsh-term-explainer#readme",
+  "bugs": {
+    "url": "https://github.com/Midnight-1991/dsh-term-explainer/issues"
+  },
+  "files": [
+    "client.js",
+    "index.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node scripts/smoke.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}
