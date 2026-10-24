@@ -1,20 +1,22 @@
 # dsh-term-explainer
 
-Adds a **Terms** action to finished DeepSeek Harness assistant answers: it detects computer-science terms in the reply and opens a panel with Chinese explanations, occurrence counts and highlighted context.
+Adds a **Terms** action to finished DeepSeek Harness assistant answers: it detects computer-science terms in the reply and opens a panel with Chinese explanations, occurrence counts and highlighted context. Explanations are themselves term-aware — click a dotted term inside any explanation to drill into its own explanation, and go back level by level.
 
 为 DeepSeek Harness Web 界面增加「术语」入口：自动识别每条已完成回答中的计算机领域专有名词，一键弹出中文解释面板。
 
 - **纯前端**：只注册 UI 槽位，不改宿主 DOM，不挂第二个 React 根节点。
 - **离线词典**：内置 330 条术语（11 个分类），不调用模型、不发起网络请求、不产生 token 费用。
+- **次级解释**：解释文本里的其他术语会自动变成可点击链接，点开继续查看下一层；支持多层钻取、逐级返回，并防止同一术语自我循环。
 - **零干扰**：没有识别到术语时不渲染任何按钮；解释面板仅在你点击时打开。
 - **主题与语言**：只用 Harness 主题令牌，深浅色自适应；界面文案跟随 `zh` / `en`。
-- **可访问**：`role="dialog"` + `aria-labelledby`、焦点进入/归还、`Tab` 焦点循环、`Esc` 关闭、尊重 `prefers-reduced-motion`。
+- **可访问**：`role="dialog"` + `aria-labelledby`、焦点随视图移动（进入下一层聚焦返回按钮，退回时聚焦来源术语）、`Tab` 焦点循环、`Esc` 逐级返回/关闭、尊重 `prefers-reduced-motion`。
 
 ## 使用
 
 1. 在一条已完成的技术回答的操作条里出现 `术语 N` 胶囊按钮（N = 唯一术语数）。
 2. 点击打开面板：每个术语展示名称、英文全称、分类、提及次数、中文解释，以及最多 3 处可展开的原文上下文（术语高亮）。
-3. `Esc`、点击遮罩或关闭按钮关闭面板。
+3. 解释中的其他术语带**虚线下划线**：点击它会把面板切到该术语的解释（标题换成它、左侧出现返回按钮），可以继续往下点，形成多层钻取。
+4. `Esc` 或左上角返回按钮退回上一层；在术语列表页按 `Esc`、点击遮罩或关闭按钮关闭面板。
 
 入口只出现在**已完成**的 Assistant 消息上，行为与官方反馈按钮一致。
 
@@ -65,7 +67,7 @@ dsh plugin --profile web add /path/to/dsh-term-explainer
 npm test        # node scripts/smoke.mjs
 ```
 
-冒烟测试在 Node `vm` 中加载真实的 `client.js`，用极小的 React / Cordis 替身驱动两个组件，覆盖：locale 注册、槽位注册、词边界与大小写、重叠长词、Markdown 上下文清理、`aria-labelledby`、关闭逻辑、40 KB 文本性能。
+冒烟测试在 Node `vm` 中加载真实的 `client.js`，用极小的 React / Cordis 替身驱动两个组件，覆盖：locale 注册、槽位注册、词边界与大小写、重叠长词、Markdown 上下文清理、`aria-labelledby`、释义内术语链接（含自我引用排除）、两层钻取、返回按钮、`Esc` 逐级退栈、关闭逻辑、40 KB 文本性能。
 
 目录：
 
@@ -77,6 +79,11 @@ npm test        # node scripts/smoke.mjs
 | `client.js` | Client 半：词典 + 扫描器 + 消息入口 + 解释面板（自包含，无构建步骤） |
 | `PROMPT.md` | 驱动本实现的需求提示词（保留以便溯源） |
 | `scripts/smoke.mjs` | 离线冒烟测试 |
+
+## 更新日志
+
+- **1.1.0**：解释文本中的术语可点击，支持多层次级解释与逐级返回。
+- **1.0.0**：首个版本：术语识别、消息入口、解释面板、330 条离线词典。
 
 ## 隐私
 

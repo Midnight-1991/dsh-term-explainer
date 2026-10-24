@@ -1,6 +1,6 @@
 {
   "name": "dsh-term-explainer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "Explain computer terms that appear in DeepSeek Harness assistant answers: offline dictionary, per-message entry, no model calls.",
   "keywords": [

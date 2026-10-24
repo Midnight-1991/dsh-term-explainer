@@ -2,8 +2,10 @@
  * Offline smoke test for the term-glossary Client module.
  *
  * Loads client.js inside a VM with a fake `window.__ModuleLoader__`, a tiny
- * React stand-in and a fake Cordis client context, then exercises the real
- * scanner and the two registered components without a browser.
+ * React stand-in (with hook state persistence, so click handlers can be
+ * exercised across renders), a fake DOM for the overlay keydown listener, and
+ * a fake Cordis client context. Exercises the scanner, both registered
+ * components and the nested explanation views without a browser.
  *
  * Run: node scripts/smoke.mjs
  */
@@ -32,24 +34,72 @@ assert.equal(typeof factory, 'function', 'client module should call the loader')
 /* ---------------------------------------------------------------- React */
 
 const h = (type, props, ...children) => ({ type, props: props || {}, children: children.flat(4) });
+
+let currentComponent = null;
+let hookIndex = 0;
+let renderDepth = 0;
+let effectQueue = [];
+const hookStores = new WeakMap();
+
+const getHookStore = () => {
+  let store = hookStores.get(currentComponent);
+  if (!store) {
+    store = { values: [], refs: [], memoValues: [], memoDeps: [], effectDeps: [] };
+    hookStores.set(currentComponent, store);
+  }
+  return store;
+};
+
+const sameDeps = (a, b) => {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let index = 0; index < a.length; index += 1) {
+    if (!Object.is(a[index], b[index])) return false;
+  }
+  return true;
+};
+
 const react = {
   createElement: h,
   useState(initial) {
-    const state = { value: typeof initial === 'function' ? initial() : initial };
+    const store = getHookStore();
+    const index = hookIndex;
+    hookIndex += 1;
+    if (!(index in store.values)) {
+      store.values[index] = typeof initial === 'function' ? initial() : initial;
+    }
     const setState = (next) => {
-      state.value = typeof next === 'function' ? next(state.value) : next;
+      store.values[index] = typeof next === 'function' ? next(store.values[index]) : next;
     };
-    return [state.value, setState];
+    return [store.values[index], setState];
   },
-  useEffect() {},
-  useMemo(fn) {
-    return fn();
+  useEffect(effect, deps) {
+    const store = getHookStore();
+    const index = hookIndex;
+    hookIndex += 1;
+    const previous = store.effectDeps[index];
+    if (previous && sameDeps(previous, deps)) return;
+    store.effectDeps[index] = deps ? deps.slice() : null;
+    effectQueue.push(effect);
   },
-  useCallback(fn) {
-    return fn;
+  useMemo(factory, deps) {
+    const store = getHookStore();
+    const index = hookIndex;
+    hookIndex += 1;
+    if (!(index in store.memoValues) || !sameDeps(store.memoDeps[index], deps)) {
+      store.memoValues[index] = factory();
+      store.memoDeps[index] = deps ? deps.slice() : null;
+    }
+    return store.memoValues[index];
   },
-  useRef() {
-    return { current: null };
+  useCallback(fn, deps) {
+    return react.useMemo(() => fn, deps);
+  },
+  useRef(initial) {
+    const store = getHookStore();
+    const index = hookIndex;
+    hookIndex += 1;
+    if (!(index in store.refs)) store.refs[index] = { current: initial === undefined ? null : initial };
+    return store.refs[index];
   },
 };
 
@@ -67,6 +117,7 @@ const ctx = {
       assert.equal(ns, 'term-glossary');
       assert.ok(dicts.zh && dicts.en, 'both locale dictionaries must be registered');
       assert.equal(dicts.zh['action.label'], '术语');
+      assert.ok(dicts.zh['panel.explainTerm'], 'nested-explanation copy must be registered');
       return () => {};
     },
   },
@@ -94,6 +145,48 @@ assert.ok(registrations.has('term-glossary-panel'), 'shell.overlay entry registe
 assert.equal(registrations.get('term-glossary').options.name, 'conversation.chat.assistant-actions');
 assert.equal(registrations.get('term-glossary-panel').options.name, 'shell.overlay');
 
+const dev = sandbox.window.__termGlossaryDev;
+assert.ok(dev && typeof dev.explainSegments === 'function', 'dev hook should be exposed while testing');
+
+/* ------------------------------------------------- fake DOM for the modal */
+
+/* Installed after apply(), so installStyles() keeps taking its no-DOM path. */
+const keydownListeners = [];
+sandbox.document = {
+  activeElement: null,
+  addEventListener(type, fn) {
+    if (type !== 'keydown') return;
+    if (!keydownListeners.includes(fn)) keydownListeners.push(fn);
+  },
+  removeEventListener(type, fn) {
+    const index = keydownListeners.indexOf(fn);
+    if (index >= 0) keydownListeners.splice(index, 1);
+  },
+  querySelector() {
+    return null;
+  },
+  contains() {
+    return false;
+  },
+};
+sandbox.setTimeout = (fn) => {
+  if (typeof fn === 'function') {
+    try {
+      fn();
+    } catch (error) {
+      /* focus attempts are best effort */
+    }
+  }
+  return 1;
+};
+sandbox.clearTimeout = () => {};
+
+const pressEscape = () => {
+  for (const listener of keydownListeners.slice()) {
+    listener({ key: 'Escape', shiftKey: false, preventDefault() {}, stopPropagation() {} });
+  }
+};
+
 /* ------------------------------------------------------- tiny renderer */
 
 const t = (key, params) => {
@@ -109,15 +202,48 @@ const t = (key, params) => {
   return text;
 };
 
-function render(tree) {
+const flushEffects = () => {
+  const queue = effectQueue;
+  effectQueue = [];
+  for (const effect of queue) {
+    try {
+      effect();
+    } catch (error) {
+      console.warn('effect failed', error);
+    }
+  }
+};
+
+const renderNodes = (tree) => {
   if (tree === null || tree === undefined || tree === false) return [];
   if (typeof tree === 'string' || typeof tree === 'number') return [{ text: String(tree) }];
-  if (Array.isArray(tree)) return tree.flatMap(render);
-  if (typeof tree.type === 'function') return render(tree.type(tree.props));
+  if (Array.isArray(tree)) return tree.flatMap(renderNodes);
+  if (typeof tree.type === 'function') {
+    const previousComponent = currentComponent;
+    const previousIndex = hookIndex;
+    currentComponent = tree.type;
+    hookIndex = 0;
+    let output;
+    try {
+      output = tree.type(tree.props);
+    } finally {
+      currentComponent = previousComponent;
+      hookIndex = previousIndex;
+    }
+    return renderNodes(output);
+  }
   const props = tree.props || {};
-  const children = tree.children.flatMap(render);
+  const children = tree.children.flatMap(renderNodes);
   return [{ type: tree.type, props, children }];
-}
+};
+
+const render = (tree) => {
+  renderDepth += 1;
+  const nodes = renderNodes(tree);
+  renderDepth -= 1;
+  if (renderDepth === 0) flushEffects();
+  return nodes;
+};
 
 const flattenText = (nodes) =>
   nodes
@@ -196,6 +322,68 @@ assert.equal(dialog.props['aria-labelledby'], 'term-glossary-panel-title');
 const title = findByClass(panelTree, 'tg-title')[0];
 assert.equal(title.props.id, 'term-glossary-panel-title');
 
+/* ------------------------------------------- nested (drill-down) views */
+
+/* Every dictionary term inside an explanation becomes a button. */
+const explainSource = '缓存穿透可用布隆过滤器或空值缓存兜底';
+const explainSegments = dev.explainSegments(explainSource, '缓存穿透');
+assert.equal(explainSegments.map((segment) => segment.text).join(''), explainSource, 'segments must reproduce the explanation');
+assert.ok(explainSegments.some((segment) => segment.entry && segment.entry.term === '布隆过滤器'), '布隆过滤器 should be clickable inside an explanation');
+assert.ok(explainSegments.some((segment) => segment.entry && segment.entry.term === '缓存'), '缓存 should be clickable too');
+assert.ok(!explainSegments.some((segment) => segment.entry && segment.entry.term === '缓存穿透'), 'a term must not link to itself');
+assert.ok(dev.explainSegments('没有术语的句子', '缓存').every((segment) => !segment.entry), 'plain sentences stay plain');
+
+const listInline = findByClass(panelTree, 'tg-inline-term');
+assert.ok(listInline.length >= 20, 'explanations should expose clickable terms, got ' + listInline.length);
+
+/* A card never links to its own term. */
+for (const card of cards) {
+  const cardName = flattenText(findByClass([card], 'tg-term-name'));
+  for (const link of findByClass([card], 'tg-inline-term')) {
+    assert.notEqual(link.props['data-term'], cardName, 'term ' + cardName + ' must not link to itself');
+  }
+}
+
+/* Pick a term whose own explanation mentions other dictionary terms. */
+const seed = listInline.find((link) => {
+  const entry = dev.findEntry(link.props['data-term']);
+  if (!entry) return false;
+  return dev.explainSegments(entry.explanation, entry.term).some((segment) => segment.entry);
+});
+assert.ok(seed, 'expected an explanation that mentions another dictionary term');
+const firstTerm = seed.props['data-term'];
+seed.props.onClick({ currentTarget: null });
+
+const detailTree = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(detailTree, 'tg-title')), firstTerm, 'clicking a term inside an explanation opens its own explanation');
+assert.equal(findByClass(detailTree, 'tg-back').length, 1, 'drill-down view offers a back button');
+assert.equal(findByClass(detailTree, 'tg-term').length, 1, 'drill-down shows one focused term card');
+assert.ok(flattenText(detailTree).includes('panel.escBack'), 'footer advertises Esc as "back" inside a drill-down');
+const firstEntry = dev.findEntry(firstTerm);
+assert.ok(flattenText(detailTree).includes(firstEntry.explanation.slice(0, 10)), 'drill-down shows the secondary explanation');
+
+/* A second level of drill-down must work too. */
+const detailInline = findByClass(detailTree, 'tg-inline-term');
+assert.ok(detailInline.length >= 1, 'the secondary explanation should keep offering deeper terms');
+const secondTerm = detailInline[0].props['data-term'];
+detailInline[0].props.onClick({ currentTarget: null });
+const deepTree = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(deepTree, 'tg-title')), secondTerm, 'second-level drill-down opens');
+assert.equal(findByClass(deepTree, 'tg-back').length, 1);
+
+/* Back button pops one level. */
+findByClass(deepTree, 'tg-back')[0].props.onClick();
+const afterBack = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(afterBack, 'tg-title')), firstTerm, 'back returns to the previous explanation');
+
+/* Esc pops a drill-down, and only closes the panel on the term list. */
+pressEscape();
+const afterEsc = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(afterEsc, 'tg-title')), '计算机术语解释', 'Esc from a drill-down returns to the term list');
+assert.ok(flattenText(afterEsc).includes('panel.escHint'), 'footer advertises Esc as "close" on the term list');
+pressEscape();
+assert.equal(render(h(Panel, { t })).length, 0, 'Esc on the term list closes the panel');
+
 /* Substring safety: REST must not match inside RESTful-style Latin words. */
 const boundaryTree = render(h(Action, {
   messageId: 'msg-3',
@@ -210,8 +398,6 @@ assert.ok(boundaryText.includes('async/await'), 'async/await should be detected'
 assert.ok(boundaryText.includes('Node.js'), 'Node.js should be detected');
 
 /* Markdown noise must be stripped from rendered context snippets. */
-const dev = sandbox.window.__termGlossaryDev;
-assert.ok(dev && typeof dev.cleanInline === 'function', 'dev hook should be exposed while testing');
 const cleaned = dev.cleanInline('**幂等**与[术语表](https://example.com/glossary)，重试用 `指数退避`\n> 引用 `a`');
 assert.ok(!cleaned.includes('**'), 'markdown emphasis markers must be stripped');
 assert.ok(!cleaned.includes('](http'), 'markdown link syntax must be stripped');
@@ -248,4 +434,4 @@ const elapsed = Date.now() - started;
 console.log('scan of', big.length, 'chars took', elapsed, 'ms');
 assert.ok(elapsed < 1500, 'scan too slow: ' + elapsed + 'ms');
 
-console.log('OK — registry, scanner, action and panel all behave.');
+console.log('OK — registry, scanner, action, panel and nested explanations all behave.');

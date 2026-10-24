@@ -412,6 +412,10 @@
         };
       });
 
+      /** Canonical term -> dictionary entry, used when an explanation link is opened. */
+      const TERM_INDEX = new Map();
+      for (const entry of TERMS) TERM_INDEX.set(entry.term, entry);
+
       /* ================================================================== *
        * Scanner
        * ================================================================== */
@@ -504,7 +508,7 @@
         };
       }
 
-      function summarize(text, matches) {
+      function acceptMatches(matches) {
         // Longest match wins at overlap points, so 向量数据库 is not also 数据库.
         matches.sort((a, b) => a.start - b.start || b.end - a.end);
         const accepted = [];
@@ -514,6 +518,42 @@
           accepted.push(match);
           cursor = match.end;
         }
+        return accepted;
+      }
+
+      const explainCache = new Map();
+
+      /**
+       * Split an explanation into plain segments and clickable dictionary terms.
+       * `skipTerm` keeps a term from linking to itself inside its own explanation.
+       */
+      function explainSegments(text, skipTerm) {
+        if (typeof text !== 'string' || text === '') return [];
+        const cacheKey = skipTerm ? skipTerm + '\u0000' + text : '\u0000' + text;
+        const cached = explainCache.get(cacheKey);
+        if (cached) return cached;
+
+        const segments = [];
+        let cursor = 0;
+        for (const match of acceptMatches(collectMatches(text))) {
+          if (match.entry.term === skipTerm) continue;
+          if (match.start > cursor) {
+            segments.push({ text: text.slice(cursor, match.start) });
+          }
+          segments.push({
+            text: text.slice(match.start, match.end),
+            term: match.entry.term,
+            entry: match.entry,
+          });
+          cursor = match.end;
+        }
+        if (cursor < text.length) segments.push({ text: text.slice(cursor) });
+        explainCache.set(cacheKey, segments);
+        return segments;
+      }
+
+      function summarize(text, matches) {
+        const accepted = acceptMatches(matches);
 
         const groups = new Map();
         for (const match of accepted) {
@@ -583,6 +623,10 @@
         'panel.escHint': '关闭',
         'panel.overlayLabel': '计算机术语解释面板',
         'panel.empty': '这条回答中没有识别到已收录的计算机术语。',
+        'panel.back': '返回',
+        'panel.escBack': '返回上一级',
+        'panel.explainTerm': '查看「{term}」的解释',
+        'panel.detailHint': '释义中带虚线的术语可点击继续查看',
         'cat.lang': '编程语言与范式',
         'cat.web': '前端与 Web',
         'cat.server': '后端与架构',
@@ -612,6 +656,10 @@
         'panel.escHint': 'to close',
         'panel.overlayLabel': 'Computer term explanations',
         'panel.empty': 'No dictionary terms were detected in this answer.',
+        'panel.back': 'Back',
+        'panel.escBack': 'to go back',
+        'panel.explainTerm': 'Explain "{term}"',
+        'panel.detailHint': 'Click an underlined term to keep exploring',
         'cat.lang': 'Languages & paradigms',
         'cat.web': 'Frontend & Web',
         'cat.server': 'Backend & architecture',
@@ -640,6 +688,9 @@
 .tg-card{display:flex;flex-direction:column;width:min(760px,100%);max-height:min(84vh,780px);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 24px 72px rgba(0,0,0,.36),0 2px 8px rgba(0,0,0,.18);overflow:hidden;animation:tg-pop .18s cubic-bezier(.2,.8,.3,1)}
 .tg-head{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--dsw-alias-border-l1)}
 .tg-head-icon{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-brand-primary)}
+.tg-back{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);cursor:pointer}
+.tg-back:hover{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
+.tg-back:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .tg-head-text{flex:1;min-width:0}
 .tg-title{margin:0;font-size:15px;font-weight:600;line-height:1.45;color:var(--dsw-alias-label-primary)}
 .tg-subtitle{margin:4px 0 0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
@@ -655,6 +706,10 @@
 .tg-chip{font-size:11px;line-height:1;padding:4px 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);white-space:nowrap}
 .tg-count{font-variant-numeric:tabular-nums}
 .tg-desc{margin:8px 0 0;font-size:13px;line-height:1.65;color:var(--dsw-alias-label-secondary)}
+.tg-inline-text{display:inline}
+.tg-inline-term{display:inline;margin:0;padding:0 1px;border:none;background:none;font:inherit;color:var(--dsw-alias-brand-primary);text-decoration:underline dotted;text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer;border-radius:3px}
+.tg-inline-term:hover{background:var(--dsw-alias-bg-layer-2);text-decoration-style:solid}
+.tg-inline-term:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .tg-toggle{margin:10px 0 0;padding:0;border:none;background:none;color:var(--dsw-alias-brand-primary);font-family:inherit;font-size:12px;line-height:1.4;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
 .tg-toggle:hover{text-decoration:underline}
 .tg-toggle:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}
@@ -762,6 +817,10 @@
         return h('svg', svgProps(size), h('path', { d: expanded ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6' }));
       }
 
+      function IconArrowLeft({ size = 16 }) {
+        return h('svg', svgProps(size), h('path', { key: 'a', d: 'M19 12H5' }), h('path', { key: 'b', d: 'm12 19-7-7 7-7' }));
+      }
+
       /* ================================================================== *
        * Components
        * ================================================================== */
@@ -817,7 +876,53 @@
         return Boolean(item.full) && normalizedName(item.full) !== normalizedName(item.term);
       }
 
-      function TermCard({ item, t }) {
+      /**
+       * Explanation text with the dictionary terms inside it turned into buttons.
+       * Clicking one opens that term's own explanation on top of the current view.
+       */
+      function InlineTerms({ text, t, skipTerm, onSelect }) {
+        const segments = explainSegments(text, skipTerm);
+        if (segments.length === 0) return text;
+        const nodes = segments.map((segment, index) => {
+          if (!segment.entry) return segment.text;
+          return h(
+            'button',
+            {
+              key: 'inline-' + index,
+              type: 'button',
+              className: 'tg-inline-term',
+              'data-term': segment.entry.term,
+              title: t('panel.explainTerm', { term: segment.entry.term }),
+              onClick: (event) => onSelect(segment.entry, event),
+            },
+            segment.text,
+          );
+        });
+        return h('span', { className: 'tg-inline-text' }, nodes);
+      }
+
+      /** Merge a dictionary entry with what the current answer says about it. */
+      function buildDetailItem(entry, items) {
+        let count = 0;
+        let snippets = [];
+        for (const item of items) {
+          if (item.term === entry.term) {
+            count = item.count;
+            snippets = item.snippets;
+            break;
+          }
+        }
+        return {
+          term: entry.term,
+          full: entry.full,
+          category: entry.category,
+          explanation: entry.explanation,
+          count,
+          snippets,
+        };
+      }
+
+      function TermCard({ item, t, onSelect }) {
         const [expanded, setExpanded] = React.useState(false);
         const hasSnippets = item.snippets.length > 0;
         return h(
@@ -837,7 +942,11 @@
                 : null,
             ),
           ),
-          h('p', { className: 'tg-desc' }, item.explanation),
+          h(
+            'p',
+            { className: 'tg-desc' },
+            h(InlineTerms, { text: item.explanation, t, skipTerm: item.term, onSelect }),
+          ),
           hasSnippets
             ? h(
                 'button',
@@ -873,8 +982,85 @@
           const payload = state.payload;
           const cardRef = React.useRef(null);
           const closeRef = React.useRef(null);
+          const backRef = React.useRef(null);
+          const [stack, setStack] = React.useState([]);
+          const stackRef = React.useRef(stack);
+          stackRef.current = stack;
+          const depthRef = React.useRef(0);
+          const pendingFocusRef = React.useRef(null);
 
           const close = React.useCallback(() => store.close(), [store]);
+
+          // Opening a message always starts on the term list, never mid-drill.
+          React.useEffect(() => {
+            setStack([]);
+            pendingFocusRef.current = null;
+          }, [open, payload]);
+
+          const focusTermButton = React.useCallback((term) => {
+            const card = cardRef.current;
+            if (!card || !term || typeof card.querySelectorAll !== 'function') return false;
+            const buttons = card.querySelectorAll('[data-term]');
+            for (let index = 0; index < buttons.length; index += 1) {
+              const candidate = buttons[index];
+              const value =
+                candidate && typeof candidate.getAttribute === 'function'
+                  ? candidate.getAttribute('data-term')
+                  : null;
+              if (value === term) {
+                try {
+                  candidate.focus();
+                } catch (error) {
+                  /* focus is best effort */
+                }
+                return true;
+              }
+            }
+            return false;
+          }, []);
+
+          const pushTerm = React.useCallback((entry) => {
+            pendingFocusRef.current = entry.term;
+            setStack((previous) => {
+              const index = previous.findIndex((item) => item.term === entry.term);
+              if (index >= 0) return previous.slice(0, index + 1);
+              return previous.concat([entry]);
+            });
+          }, []);
+
+          const popTerm = React.useCallback(() => {
+            setStack((previous) => {
+              if (previous.length === 0) return previous;
+              pendingFocusRef.current = previous[previous.length - 1].term;
+              return previous.slice(0, -1);
+            });
+          }, []);
+
+          // Focus follows the view: the back button when diving in, the clicked term when coming out.
+          React.useEffect(() => {
+            if (!open) {
+              depthRef.current = 0;
+              return undefined;
+            }
+            const depth = stack.length;
+            const previousDepth = depthRef.current;
+            depthRef.current = depth;
+            if (depth > previousDepth) {
+              const timer = setTimeout(() => {
+                if (backRef.current) backRef.current.focus();
+              }, 0);
+              return () => clearTimeout(timer);
+            }
+            if (depth < previousDepth) {
+              const target = pendingFocusRef.current;
+              const timer = setTimeout(() => {
+                pendingFocusRef.current = null;
+                if (!focusTermButton(target) && closeRef.current) closeRef.current.focus();
+              }, 0);
+              return () => clearTimeout(timer);
+            }
+            return undefined;
+          }, [open, stack.length, focusTermButton]);
 
           React.useEffect(() => {
             if (!open) return undefined;
@@ -883,7 +1069,8 @@
               if (event.key === 'Escape') {
                 event.preventDefault();
                 event.stopPropagation();
-                close();
+                if (stackRef.current.length > 0) popTerm();
+                else close();
                 return;
               }
               if (event.key !== 'Tab') return;
@@ -905,7 +1092,7 @@
             };
             document.addEventListener('keydown', onKeyDown, true);
             const timer = setTimeout(() => {
-              if (closeRef.current) closeRef.current.focus();
+              if (closeRef.current && stackRef.current.length === 0) closeRef.current.focus();
             }, 0);
             return () => {
               document.removeEventListener('keydown', onKeyDown, true);
@@ -918,12 +1105,23 @@
                 }
               }
             };
-          }, [open, close]);
+          }, [open, close, popTerm]);
 
           if (!open || !payload) return null;
 
           const scan = payload.scan;
           const items = scan && Array.isArray(scan.unique) ? scan.unique : [];
+          const detail = stack.length > 0 ? stack[stack.length - 1] : null;
+          const detailItem = detail ? buildDetailItem(detail, items) : null;
+          const subtitle = detail
+            ? [
+                showFull(detail) ? detail.full : '',
+                categoryLabel(t, detail.category),
+                t('panel.detailHint'),
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : t('panel.subtitle', { count: items.length, total: scan ? scan.total : 0 });
 
           return h(
             'div',
@@ -947,16 +1145,25 @@
               h(
                 'header',
                 { className: 'tg-head' },
-                h('span', { className: 'tg-head-icon' }, h(IconBook, { size: 17 })),
+                detail
+                  ? h(
+                      'button',
+                      {
+                        type: 'button',
+                        className: 'tg-back',
+                        ref: backRef,
+                        'aria-label': t('panel.back'),
+                        title: t('panel.back'),
+                        onClick: popTerm,
+                      },
+                      h(IconArrowLeft, { size: 16 }),
+                    )
+                  : h('span', { className: 'tg-head-icon' }, h(IconBook, { size: 17 })),
                 h(
                   'div',
                   { className: 'tg-head-text' },
-                  h('h2', { className: 'tg-title', id: TITLE_ID }, t('panel.title')),
-                  h(
-                    'p',
-                    { className: 'tg-subtitle' },
-                    t('panel.subtitle', { count: items.length, total: scan ? scan.total : 0 }),
-                  ),
+                  h('h2', { className: 'tg-title', id: TITLE_ID }, detail ? detail.term : t('panel.title')),
+                  h('p', { className: 'tg-subtitle' }, subtitle),
                 ),
                 h(
                   'button',
@@ -974,15 +1181,17 @@
               h(
                 'div',
                 { className: 'tg-body' },
-                items.length === 0
-                  ? h('p', { className: 'tg-empty' }, t('panel.empty'))
-                  : items.map((item) => h(TermCard, { key: item.term, item, t })),
+                detail
+                  ? h(TermCard, { key: 'detail-' + detail.term, item: detailItem, t, onSelect: pushTerm })
+                  : items.length === 0
+                    ? h('p', { className: 'tg-empty' }, t('panel.empty'))
+                    : items.map((item) => h(TermCard, { key: item.term, item, t, onSelect: pushTerm })),
               ),
               h(
                 'footer',
                 { className: 'tg-foot' },
                 h('span', null, t('panel.dictionary', { count: TERMS.length }), ' · ', t('panel.languageNote')),
-                h('span', null, h('kbd', null, 'Esc'), ' ', t('panel.escHint')),
+                h('span', null, h('kbd', null, 'Esc'), ' ', detail ? t('panel.escBack') : t('panel.escHint')),
               ),
             ),
           );
@@ -1056,7 +1265,14 @@
 
       // Opt-in test hook, used by scripts/smoke.mjs. Never enabled by the host.
       if (typeof window !== 'undefined' && window.__TERM_GLOSSARY_DEV__ === true) {
-        window.__termGlossaryDev = { cleanInline, contextSnippet, summarize, scanText };
+        window.__termGlossaryDev = {
+          cleanInline,
+          contextSnippet,
+          summarize,
+          scanText,
+          explainSegments,
+          findEntry: (term) => TERM_INDEX.get(term),
+        };
       }
 
       return {
