@@ -566,7 +566,7 @@ assert.ok(openDictButton, 'settings page offers a dictionary toggle');
 assert.equal(findByClass(settingsView, 'tg-set-item').length, 8, 'lookup shows a short preview list');
 openDictButton.props.onClick();
 settingsView = render(h(Settings, { t }));
-assert.equal(findByClass(settingsView, 'tg-set-item').length, 330, 'dictionary toggle expands to the full dictionary');
+assert.equal(findByClass(settingsView, 'tg-set-item').length, dev.termTotal, 'dictionary toggle expands to the full dictionary');
 assert.ok(flattenText(settingsView).includes('settings.dictHint'), 'dictionary hint reports the match count');
 assert.ok(flattenText(settingsView).includes('settings.shortcutDialogHint'), 'settings explains why Alt+D is ignored inside the sheet');
 const closeDictButton = findByTag(settingsView, 'button').find((button) => flattenText([button]) === 'settings.closeDict');
@@ -613,7 +613,7 @@ const dispatchKey = (event) => {
 dispatchKey({ key: 'd', altKey: true });
 let dictTree = render(h(Panel, { t }));
 assert.equal(flattenText(findByClass(dictTree, 'tg-title')), 'panel.dictionaryTitle', 'Alt+D opens the dictionary');
-assert.equal(findByClass(dictTree, 'tg-term').length, 330, 'dictionary mode lists every term');
+assert.equal(findByClass(dictTree, 'tg-term').length, dev.termTotal, 'dictionary mode lists every term');
 findByClass(dictTree, 'tg-search')[0].props.onChange({ target: { value: 'gRPC' } });
 dictTree = render(h(Panel, { t }));
 assert.equal(findByClass(dictTree, 'tg-term').length, 1, 'dictionary search narrows the list');
@@ -777,7 +777,7 @@ assert.equal(dev.getLatestScan(), null, 'latest scan from another session is not
 dev.rememberScan({ sessionId: 'session-a', messageId: 'msg-1', text: SAMPLE, scan: dev.scanText(SAMPLE) });
 assert.ok(dev.getLatestScan(), 'latest scan is available again inside its own session');
 
-/* Long text throughput: 200 KB / ~340 dictionary terms. */
+/* Long text throughput: 200 KB / full dictionary. */
 const big = SAMPLE.repeat(120);
 const started = Date.now();
 render(h(Action, {
@@ -788,5 +788,29 @@ render(h(Action, {
 const elapsed = Date.now() - started;
 console.log('scan of', big.length, 'chars took', elapsed, 'ms');
 assert.ok(elapsed < 1500, 'scan too slow: ' + elapsed + 'ms');
+
+/* ================================== 1.3.0: generated external glossary === */
+assert.ok(dev.termTotal >= 550, `dictionary grew past 550 terms (got ${dev.termTotal})`);
+assert.equal(new Set(dev.termList()).size, dev.termTotal, 'merged dictionary has no duplicate terms');
+assert.ok(dev.externalTotal >= 200, 'external glossary block is embedded');
+
+for (const term of ['Ingress', 'Kubectl', 'Kubelet', '附加组件', 'Gateway API', '上下文压缩', 'Function Calling']) {
+  const entry = dev.findEntry(term);
+  assert.ok(entry, `dictionary knows ${term}`);
+  assert.ok(entry.explanation && entry.explanation.length >= 6, `${term} has an explanation`);
+  assert.ok(
+    ['lang', 'web', 'server', 'db', 'net', 'devops', 'security', 'ai', 'system', 'practice', 'harness'].includes(entry.category),
+    `${term} uses a known category`,
+  );
+}
+
+const externalScan = dev.scanText('Ingress 和 Gateway API 负责流量入口，Kubectl 用来管理集群。');
+const externalHits = externalScan.unique.map((item) => item.term);
+for (const term of ['Ingress', 'Gateway API', 'Kubectl']) {
+  assert.ok(externalHits.includes(term), `scanner detects external term ${term}`);
+}
+
+const mergedCount = dev.termTotal;
+assert.ok(mergedCount > 500, 'merged dictionary stays above five hundred entries');
 
 console.log('OK — registry, scanner, action, panel, nested explanations, favorites, dictionary and settings all behave.');

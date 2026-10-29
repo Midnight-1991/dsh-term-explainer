@@ -1,0 +1,3145 @@
+{
+  "generatedBy": "scripts/sync-external-glossary.mjs",
+  "note": "Only permissive sources (Apache-2.0, MIT) are merged. Do not add NC/SA sources to the published package.",
+  "sources": [
+    {
+      "id": "kubernetes-website",
+      "repo": "https://github.com/kubernetes/website",
+      "path": "content/zh-cn/docs/reference/glossary",
+      "license": "CC-BY-4.0",
+      "commit": "be44f0fb4230bec1dd3e0ecce420fb52ab8faea3",
+      "added": 162
+    },
+    {
+      "id": "cncf-glossary",
+      "repo": "https://github.com/cncf/glossary",
+      "path": "content/zh-cn",
+      "license": "Apache-2.0",
+      "commit": "c6493fa4824c440cca36a970f9ca68eeabc544bb",
+      "added": 63
+    },
+    {
+      "id": "ai-heihua-zh",
+      "repo": "https://github.com/YqqLikeGit/ai-heihua-zh",
+      "path": "glossary/index.json",
+      "license": "MIT",
+      "commit": "16e0c3a01260d444412a0ce168eedd70fcf992a5",
+      "added": 91
+    }
+  ],
+  "entries": [
+    [
+      "附加组件",
+      "Add-ons",
+      "devops",
+      "扩展 Kubernetes 功能的资源。",
+      {
+        "aliases": [
+          "Add-ons"
+        ]
+      }
+    ],
+    [
+      "准入控制器",
+      "Admission Controller",
+      "devops",
+      "在对象持久化之前拦截 Kubernetes API 服务器请求的一段代码。",
+      {
+        "aliases": [
+          "Admission Controller"
+        ]
+      }
+    ],
+    [
+      "亲和性",
+      "Affinity",
+      "system",
+      "调度程序用于确定在何处放置 Pod（亲和性）的规则。",
+      {
+        "aliases": [
+          "Affinity"
+        ]
+      }
+    ],
+    [
+      "聚合层",
+      "Aggregation Layer",
+      "devops",
+      "聚合层允许你在自己的集群上安装额外的 Kubernetes 风格的 API。",
+      {
+        "aliases": [
+          "Aggregation Layer"
+        ]
+      }
+    ],
+    [
+      "注解",
+      "Annotation",
+      "system",
+      "注解是以键值对的形式给资源对象附加随机的无法标识的元数据。",
+      {
+        "aliases": [
+          "Annotation"
+        ]
+      }
+    ],
+    [
+      "API 发起的驱逐",
+      "API-initiated eviction",
+      "devops",
+      "API 发起的驱逐是一个先调用 Eviction API 创建驱逐对象，再由该对象体面地中止 Pod 的过程。",
+      {
+        "aliases": [
+          "API-initiated eviction"
+        ]
+      }
+    ],
+    [
+      "API Group",
+      "API Group",
+      "system",
+      "Kubernetes API 中的一组相关路径。",
+      {
+        "aliases": [
+          "API 组"
+        ]
+      }
+    ],
+    [
+      "API 资源",
+      "API resource",
+      "devops",
+      "Kubernetes 实体，表示 Kubernetes API 服务器上的端点。",
+      {
+        "aliases": [
+          "API resource",
+          "Resource"
+        ]
+      }
+    ],
+    [
+      "应用容器",
+      "App Container",
+      "devops",
+      "用于运行部分工作负载的容器。与 Init 容器比较而言。",
+      {
+        "aliases": [
+          "App Container"
+        ]
+      }
+    ],
+    [
+      "应用架构师",
+      "Application Architect",
+      "devops",
+      "应用架构师是负责应用高级设计的人。",
+      {
+        "aliases": [
+          "Application Architect"
+        ]
+      }
+    ],
+    [
+      "应用开发者",
+      "Application Developer",
+      "devops",
+      "编写可以在 Kubernetes 集群上运行的应用的人。",
+      {
+        "aliases": [
+          "Application Developer"
+        ]
+      }
+    ],
+    [
+      "应用",
+      "Applications",
+      "system",
+      "各种容器化应用运行所在的层。",
+      {
+        "aliases": [
+          "Applications",
+          "Application"
+        ]
+      }
+    ],
+    [
+      "批准者",
+      "Approver",
+      "practice",
+      "可以审核并批准 Kubernetes 代码贡献的人。",
+      {
+        "aliases": [
+          "Approver"
+        ]
+      }
+    ],
+    [
+      "cAdvisor",
+      "cAdvisor",
+      "devops",
+      "帮助理解容器的资源用量与性能特征的工具。"
+    ],
+    [
+      "容器设备接口",
+      "Container Device Interface (CDI)",
+      "devops",
+      "一种 CNCF 规范，用于描述容器运行时在创建容器时应用的设备配置。",
+      {
+        "aliases": [
+          "Container Device Interface (CDI)",
+          "CDI"
+        ]
+      }
+    ],
+    [
+      "通用表达式语言",
+      "Common Expression Language",
+      "devops",
+      "一种为安全执行用户代码而设计的表达式语言。",
+      {
+        "aliases": [
+          "Common Expression Language",
+          "CEL"
+        ]
+      }
+    ],
+    [
+      "证书",
+      "Certificate",
+      "security",
+      "证书是个安全加密文件，用来确认对 Kubernetes 集群访问的合法性。",
+      {
+        "aliases": [
+          "Certificate"
+        ]
+      }
+    ],
+    [
+      "控制组",
+      "cgroup (control group)",
+      "system",
+      "一组具有可选资源隔离、审计和限制的 Linux 进程。",
+      {
+        "aliases": [
+          "cgroup (control group)",
+          "cgroup；control group"
+        ]
+      }
+    ],
+    [
+      "CIDR",
+      "CIDR",
+      "net",
+      "CIDR 是一种描述 IP 地址块的符号，被广泛使用于各种网络配置中。"
+    ],
+    [
+      "贡献者许可协议",
+      "CLA (Contributor License Agreement)",
+      "practice",
+      "贡献者对他们在开源项目中所贡献的代码的授权许可条款。",
+      {
+        "aliases": [
+          "CLA (Contributor License Agreement)",
+          "CLA；Contributor License Agreement"
+        ]
+      }
+    ],
+    [
+      "云控制器管理器",
+      "Cloud Controller Manager",
+      "devops",
+      "将 Kubernetes 与第三方云提供商进行集成的控制平面组件。",
+      {
+        "aliases": [
+          "Cloud Controller Manager"
+        ]
+      }
+    ],
+    [
+      "云提供商",
+      "Cloud Provider",
+      "practice",
+      "一个提供云计算平台的组织。",
+      {
+        "aliases": [
+          "Cloud Provider",
+          "云服务提供商（Cloud Service Provider）"
+        ]
+      }
+    ],
+    [
+      "集群架构师",
+      "Cluster Architect",
+      "devops",
+      "设计涉及一个或多个 Kubernetes 集群的基础设施的人。",
+      {
+        "aliases": [
+          "Cluster Architect"
+        ]
+      }
+    ],
+    [
+      "集群基础设施",
+      "Cluster Infrastructure",
+      "devops",
+      "基础设施层提供并维护虚拟机、网络、安全组及其他资源。",
+      {
+        "aliases": [
+          "Cluster Infrastructure"
+        ]
+      }
+    ],
+    [
+      "集群操作",
+      "Cluster Operations",
+      "devops",
+      "管理 Kubernetes 集群所涉及的相关工作。",
+      {
+        "aliases": [
+          "Cluster Operations"
+        ]
+      }
+    ],
+    [
+      "集群操作者",
+      "Cluster Operator",
+      "devops",
+      "配置、控制、监控集群的人。",
+      {
+        "aliases": [
+          "Cluster Operator"
+        ]
+      }
+    ],
+    [
+      "集群",
+      "Cluster",
+      "system",
+      "一组工作机器，称为节点，会运行容器化应用程序。每个集群至少有一个工作节点。",
+      {
+        "aliases": [
+          "Cluster"
+        ]
+      }
+    ],
+    [
+      "云原生计算基金会",
+      "Cloud Native Computing Foundation (CNCF)",
+      "practice",
+      "云原生计算基金会（Cloud Native Computing Foundation）。",
+      {
+        "aliases": [
+          "Cloud Native Computing Foundation (CNCF)",
+          "CNCF；Cloud Native Computing Foundation"
+        ]
+      }
+    ],
+    [
+      "容器网络接口",
+      "Container network interface (CNI)",
+      "net",
+      "容器网络接口 (Container network interface；CNI) 插件是遵循 appc/CNI 协议的一类网络插件。",
+      {
+        "aliases": [
+          "Container network interface (CNI)",
+          "Container network interface；CNI"
+        ]
+      }
+    ],
+    [
+      "代码贡献者",
+      "Code Contributor",
+      "practice",
+      "为 Kubernetes 开源代码库开发并贡献代码的人。",
+      {
+        "aliases": [
+          "Code Contributor"
+        ]
+      }
+    ],
+    [
+      "状况",
+      "Condition",
+      "system",
+      "状况表示 Kubernetes 资源的当前状态，提供资源某些方面是否为真的信息。",
+      {
+        "aliases": [
+          "Condition"
+        ]
+      }
+    ],
+    [
+      "ConfigMap",
+      "ConfigMap",
+      "devops",
+      "ConfigMap 是一种 API 对象，用来将非机密性的数据保存到键值对中。使用时可以用作环境变量、命令行参数或者存储卷中的配置文件。"
+    ],
+    [
+      "容器环境变量",
+      "Container Environment Variables",
+      "system",
+      "容器环境变量提供了 name=value 形式的、运行容器化应用所必须的一些重要信息。",
+      {
+        "aliases": [
+          "Container Environment Variables"
+        ]
+      }
+    ],
+    [
+      "容器生命周期钩子",
+      "Container Lifecycle Hooks",
+      "devops",
+      "生命周期钩子暴露容器管理生命周期中的事件，允许用户在事件发生时运行代码。",
+      {
+        "aliases": [
+          "Container Lifecycle Hooks"
+        ]
+      }
+    ],
+    [
+      "容器运行时",
+      "Container Runtime",
+      "system",
+      "容器运行时是负责运行容器的软件。",
+      {
+        "aliases": [
+          "Container Runtime"
+        ]
+      }
+    ],
+    [
+      "容器",
+      "Container",
+      "system",
+      "容器是可移植、可执行的轻量级的镜像，镜像中包含软件及其相关依赖。",
+      {
+        "aliases": [
+          "Container"
+        ]
+      }
+    ],
+    [
+      "containerd",
+      "containerd",
+      "devops",
+      "强调简单性、健壮性和可移植性的一种容器运行时。"
+    ],
+    [
+      "贡献者",
+      "Contributor",
+      "practice",
+      "通过贡献代码、文档或者投入时间等方式来帮助 Kubernetes 项目或社区的人。",
+      {
+        "aliases": [
+          "Contributor"
+        ]
+      }
+    ],
+    [
+      "控制平面",
+      "Control Plane",
+      "system",
+      "控制平面是指容器编排层，它暴露 API 和接口来定义、部署容器和管理容器的生命周期。",
+      {
+        "aliases": [
+          "Control Plane"
+        ]
+      }
+    ],
+    [
+      "控制器",
+      "Controller",
+      "devops",
+      "控制器通过 API 服务器监控集群的公共状态，并致力于将当前状态转变为期望的状态。",
+      {
+        "aliases": [
+          "Controller"
+        ]
+      }
+    ],
+    [
+      "CRI-O",
+      "CRI-O",
+      "devops",
+      "专用于 Kubernetes 的轻量级容器运行时软件。"
+    ],
+    [
+      "容器运行时接口",
+      "Container Runtime Interface (CRI)",
+      "system",
+      "在 kubelet 和本地容器运行时之间通讯的协议。",
+      {
+        "aliases": [
+          "Container Runtime Interface (CRI)",
+          "Container Runtime Interface；CRI"
+        ]
+      }
+    ],
+    [
+      "周期调度任务",
+      "CronJob",
+      "devops",
+      "周期调度的任务（作业）。",
+      {
+        "aliases": [
+          "CronJob"
+        ]
+      }
+    ],
+    [
+      "容器存储接口",
+      "Container Storage Interface (CSI)",
+      "devops",
+      "容器存储接口 （CSI）定义了存储系统暴露给容器的标准接口。",
+      {
+        "aliases": [
+          "Container Storage Interface (CSI)",
+          "Container Storage Interface；CSI"
+        ]
+      }
+    ],
+    [
+      "CustomResourceDefinition",
+      "CustomResourceDefinition",
+      "system",
+      "通过定制化的代码给你的 Kubernetes API 服务器增加资源对象，而无需编译完整的定制 API 服务器。"
+    ],
+    [
+      "DaemonSet",
+      "DaemonSet",
+      "system",
+      "确保 Pod 的副本在集群中的一组节点上运行。"
+    ],
+    [
+      "数据平面",
+      "Data Plane",
+      "system",
+      "提供诸如 CPU、内存、网络和存储的能力，以便容器可以运行并连接到网络。",
+      {
+        "aliases": [
+          "Data Plane"
+        ]
+      }
+    ],
+    [
+      "Deployment",
+      "Deployment",
+      "system",
+      "管理集群上的多副本应用。"
+    ],
+    [
+      "开发者",
+      "Developer (disambiguation)",
+      "practice",
+      "指的是：应用开发者、代码贡献者或平台开发者。",
+      {
+        "aliases": [
+          "Developer (disambiguation)",
+          "Developer"
+        ]
+      }
+    ],
+    [
+      "设备插件",
+      "Device Plugin",
+      "system",
+      "一种软件扩展，可以使 Pod 访问由特定厂商初始化或者安装的设备。",
+      {
+        "aliases": [
+          "Device Plugin"
+        ]
+      }
+    ],
+    [
+      "设备",
+      "Device",
+      "devops",
+      "直接或间接挂接到集群节点上的所有资源，例如 GPU 或电路板。",
+      {
+        "aliases": [
+          "Device"
+        ]
+      }
+    ],
+    [
+      "DeviceClass",
+      "DeviceClass",
+      "devops",
+      "集群中设备的一种分类。使用户可以申领 DeviceClass 中的特定设备。"
+    ],
+    [
+      "干扰",
+      "Disruption",
+      "system",
+      "导致 Pod 服务停止的事件。",
+      {
+        "aliases": [
+          "Disruption"
+        ]
+      }
+    ],
+    [
+      "Docker",
+      "Docker",
+      "system",
+      "Docker 是一种可以提供操作系统级别虚拟化（也称作容器）的软件技术。"
+    ],
+    [
+      "Dockershim",
+      "Dockershim",
+      "system",
+      "Dockershim 是 Kubernetes v1.23 及之前版本中的一个组件，Kubernetes 系统组件通过它与 Docker Engine 通信。"
+    ],
+    [
+      "下游",
+      "Downstream (disambiguation)",
+      "practice",
+      "可以指：Kubernetes 生态系统中依赖于核心 Kubernetes 代码库或分支代码库的代码。",
+      {
+        "aliases": [
+          "Downstream (disambiguation)",
+          "Downstream"
+        ]
+      }
+    ],
+    [
+      "Downward API",
+      "Downward API",
+      "devops",
+      "将 Pod 和容器字段值暴露给容器中运行的代码的机制。"
+    ],
+    [
+      "动态资源分配",
+      "Dynamic Resource Allocation",
+      "devops",
+      "Kubernetes 提供的一项特性，用于在 Pod 之间请求和共享资源，例如硬件加速器。",
+      {
+        "aliases": [
+          "Dynamic Resource Allocation",
+          "DRA"
+        ]
+      }
+    ],
+    [
+      "腾空",
+      "Drain",
+      "system",
+      "从 Node 中安全地驱逐 Pod，为节点维护或移除做好准备。",
+      {
+        "aliases": [
+          "Drain"
+        ]
+      }
+    ],
+    [
+      "Duration",
+      "Duration",
+      "system",
+      "表示时间量的字符串值。"
+    ],
+    [
+      "动态卷制备",
+      "Dynamic Volume Provisioning",
+      "devops",
+      "允许用户请求自动创建存储卷。",
+      {
+        "aliases": [
+          "Dynamic Volume Provisioning"
+        ]
+      }
+    ],
+    [
+      "EndpointSlice",
+      "EndpointSlice",
+      "net",
+      "EndpointSlices 跟踪提供 Service 的 Pod 的 IP 地址。"
+    ],
+    [
+      "端点",
+      "Endpoints",
+      "net",
+      "表示 Service 端点的 API（已弃用）。",
+      {
+        "aliases": [
+          "Endpoints"
+        ]
+      }
+    ],
+    [
+      "临时容器",
+      "Ephemeral Container",
+      "system",
+      "你可以在 Pod 中临时运行的一种容器类型。",
+      {
+        "aliases": [
+          "Ephemeral Container"
+        ]
+      }
+    ],
+    [
+      "etcd",
+      "etcd",
+      "devops",
+      "一致且高可用的键值存储，用作 Kubernetes 所有集群数据的后台数据库。"
+    ],
+    [
+      "事件",
+      "Event",
+      "devops",
+      "描述集群中某些状态变化的 Kubernetes 对象。",
+      {
+        "aliases": [
+          "Event"
+        ]
+      }
+    ],
+    [
+      "驱逐",
+      "Eviction",
+      "devops",
+      "终止节点上一个或多个 Pod 的过程。",
+      {
+        "aliases": [
+          "Eviction"
+        ]
+      }
+    ],
+    [
+      "扩展组件",
+      "Extensions",
+      "system",
+      "扩展组件（Extension）是扩展并与 Kubernetes 深度集成以支持新型硬件的软件组件。",
+      {
+        "aliases": [
+          "Extensions",
+          "Extension"
+        ]
+      }
+    ],
+    [
+      "特性门控",
+      "Feature gate",
+      "system",
+      "一种控制是否启用某特定 Kubernetes 特性的方法。",
+      {
+        "aliases": [
+          "Feature gate"
+        ]
+      }
+    ],
+    [
+      "Finalizer",
+      "Finalizer",
+      "system",
+      "一个带有命名空间的键，告诉 Kubernetes 等到特定的条件被满足后， 再完全删除被标记为删除的资源。"
+    ],
+    [
+      "FlexVolume",
+      "FlexVolume",
+      "devops",
+      "FlexVolume 是一个已弃用的接口，用于创建树外卷插件。 是一个更新的接口，它解决了 FlexVolume 的一些问题。"
+    ],
+    [
+      "垃圾收集",
+      "Garbage Collection",
+      "system",
+      "Kubernetes 用于清理集群资源的各种机制的统称。",
+      {
+        "aliases": [
+          "Garbage Collection"
+        ]
+      }
+    ],
+    [
+      "Gateway API",
+      "Gateway API",
+      "net",
+      "Kubernetes 中服务网络建模所用的 API。"
+    ],
+    [
+      "组版本资源",
+      "Group Version Resource",
+      "devops",
+      "Kubernetes API 的 API 组、API 版本和名称。",
+      {
+        "aliases": [
+          "Group Version Resource"
+        ]
+      }
+    ],
+    [
+      "Helm Chart",
+      "Helm Chart",
+      "devops",
+      "Helm Chart 是一组预先定义的 Kubernetes 配置所构成的包，可以使用 Helm 工具对其进行管理。"
+    ],
+    [
+      "Pod 水平自动扩缩器",
+      "Horizontal Pod Autoscaler",
+      "devops",
+      "此对象根据目标资源利用率或自定义度量目标自动扩缩 Pod 副本的数量。",
+      {
+        "aliases": [
+          "Horizontal Pod Autoscaler",
+          "HPA"
+        ]
+      }
+    ],
+    [
+      "HostAliases",
+      "HostAliases",
+      "devops",
+      "主机别名 (HostAliases) 是一组 IP 地址和主机名的映射，用于注入到 Pod 内的 hosts 文件。"
+    ],
+    [
+      "镜像",
+      "Image",
+      "system",
+      "镜像（Image）是保存的容器实例，它打包了应用运行所需的一组软件。",
+      {
+        "aliases": [
+          "Image"
+        ]
+      }
+    ],
+    [
+      "不可变基础设施",
+      "Immutable Infrastructure",
+      "devops",
+      "不可变基础设施指的是一旦部署就不能变更的计算机基础设施（虚拟机、容器和网络设施）。",
+      {
+        "aliases": [
+          "Immutable Infrastructure"
+        ]
+      }
+    ],
+    [
+      "资源（基础设施）",
+      "Resource (infrastructure)",
+      "devops",
+      "数量确定的可供使用的基础设施（CPU、内存等）。",
+      {
+        "aliases": [
+          "Resource (infrastructure)"
+        ]
+      }
+    ],
+    [
+      "Ingress",
+      "Ingress",
+      "net",
+      "Ingress 是对集群中服务的外部访问进行管理的 API 对象，典型的访问方式是 HTTP。"
+    ],
+    [
+      "Init 容器",
+      "Init Container",
+      "system",
+      "应用容器运行前必须先运行完成的一个或多个 Init 容器（Init Container）。",
+      {
+        "aliases": [
+          "Init Container"
+        ]
+      }
+    ],
+    [
+      "Istio",
+      "Istio",
+      "net",
+      "Istio 是一个（非 Kubernetes 特有的）开放平台，提供了一种统一的方式来集成微服务、管理流量、实施策略和汇总度量数据。"
+    ],
+    [
+      "Job",
+      "Job",
+      "system",
+      "Job 是需要运行完成的确定性的或批量的任务。"
+    ],
+    [
+      "JSON Web 令牌",
+      "JSON Web Token (JWT)",
+      "security",
+      "JWT 是用来表示在两方之间所转移的权限声明的一种方式。",
+      {
+        "aliases": [
+          "JSON Web Token (JWT)",
+          "JWT"
+        ]
+      }
+    ],
+    [
+      "kOps",
+      "kOps (Kubernetes Operations)",
+      "devops",
+      "kOps 不仅会帮助你创建、销毁、升级和维护生产级、高可用性的 Kubernetes 集群， 还会提供必要的云基础设施。",
+      {
+        "aliases": [
+          "kOps (Kubernetes Operations)",
+          "Kubernetes Operations"
+        ]
+      }
+    ],
+    [
+      "API 服务器",
+      "API server",
+      "devops",
+      "提供 Kubernetes API 服务的控制面组件。",
+      {
+        "aliases": [
+          "API server",
+          "kube-apiserver"
+        ]
+      }
+    ],
+    [
+      "kube-controller-manager",
+      "kube-controller-manager",
+      "devops",
+      "运行控制器进程的控制平面组件。"
+    ],
+    [
+      "kube-proxy",
+      "kube-proxy",
+      "system",
+      "kube-proxy 是集群中每个节点上运行的网络代理。"
+    ],
+    [
+      "kube-scheduler",
+      "kube-scheduler",
+      "devops",
+      "控制平面组件，负责监视新创建的、未指定运行节点的 Pod，选择节点让 Pod 在上面运行。"
+    ],
+    [
+      "Kubeadm",
+      "Kubeadm",
+      "devops",
+      "用来快速安装 Kubernetes 并搭建安全稳定的集群的工具。"
+    ],
+    [
+      "Kubectl",
+      "Kubectl",
+      "devops",
+      "kubectl 是用来和 Kubernetes 集群进行通信的命令行工具。",
+      {
+        "aliases": [
+          "kubectl"
+        ]
+      }
+    ],
+    [
+      "Kubelet",
+      "Kubelet",
+      "system",
+      "一个在集群中每个节点上运行的代理。它保证容器都运行在 Pod 中。"
+    ],
+    [
+      "Kubernetes API",
+      "Kubernetes API",
+      "system",
+      "Kubernetes API 是通过 RESTful 接口提供 Kubernetes 功能服务并负责集群状态存储的应用程序。"
+    ],
+    [
+      "标签",
+      "Label",
+      "system",
+      "用来为对象设置可标识的属性标记；这些标记对用户而言是有意义且重要的。",
+      {
+        "aliases": [
+          "Label"
+        ]
+      }
+    ],
+    [
+      "LimitRange",
+      "LimitRange",
+      "devops",
+      "提供约束来限制命名空间中每个容器或 Pod 的资源消耗。"
+    ],
+    [
+      "日志",
+      "Logging",
+      "devops",
+      "日志是集群或应用记录的事件列表。",
+      {
+        "aliases": [
+          "Logging"
+        ]
+      }
+    ],
+    [
+      "托管服务",
+      "Managed Service",
+      "devops",
+      "由第三方供应商负责维护的一种软件产品。",
+      {
+        "aliases": [
+          "Managed Service"
+        ]
+      }
+    ],
+    [
+      "清单",
+      "Manifest",
+      "system",
+      "一个或多个 Kubernetes API 对象的序列化规范。",
+      {
+        "aliases": [
+          "Manifest"
+        ]
+      }
+    ],
+    [
+      "Master",
+      "Master",
+      "system",
+      "遗留术语，作为运行控制平面的节点的同义词使用。"
+    ],
+    [
+      "成员",
+      "Member",
+      "practice",
+      "K8s 社区中持续活跃的贡献者。",
+      {
+        "aliases": [
+          "Member"
+        ]
+      }
+    ],
+    [
+      "Minikube",
+      "Minikube",
+      "system",
+      "Minikube 是用来在本地运行 Kubernetes 的一种工具。"
+    ],
+    [
+      "镜像 Pod",
+      "Mirror Pod",
+      "devops",
+      "API 服务器中的一个对象，用于跟踪 kubelet 上的静态 pod。",
+      {
+        "aliases": [
+          "Mirror Pod"
+        ]
+      }
+    ],
+    [
+      "混合版本代理",
+      "Mixed Version Proxy (MVP)",
+      "devops",
+      "此特性使 kube-apiserver 能够将资源请求代理到另一个对等 API 服务器。",
+      {
+        "aliases": [
+          "Mixed Version Proxy (MVP)"
+        ]
+      }
+    ],
+    [
+      "名称",
+      "Name",
+      "system",
+      "客户端提供的字符串，用来指代资源 URL 中的对象，如 /api/v1/pods/some-name。",
+      {
+        "aliases": [
+          "Name"
+        ]
+      }
+    ],
+    [
+      "名字空间",
+      "Namespace",
+      "system",
+      "名字空间是 Kubernetes 用来支持隔离单个集群中的资源组的一种抽象。",
+      {
+        "aliases": [
+          "Namespace"
+        ]
+      }
+    ],
+    [
+      "网络策略",
+      "Network Policy",
+      "net",
+      "网络策略是一种规范，规定了允许 Pod 组之间、Pod 与其他网络端点之间以怎样的方式进行通信。",
+      {
+        "aliases": [
+          "Network Policy"
+        ]
+      }
+    ],
+    [
+      "节点压力驱逐",
+      "Node-pressure eviction",
+      "devops",
+      "节点压力驱逐是 kubelet 主动使 Pod 失败以回收节点上 的过程。",
+      {
+        "aliases": [
+          "Node-pressure eviction",
+          "kubelet eviction"
+        ]
+      }
+    ],
+    [
+      "节点",
+      "Node",
+      "devops",
+      "Kubernetes 中的工作机器称作节点。",
+      {
+        "aliases": [
+          "Node"
+        ]
+      }
+    ],
+    [
+      "对象",
+      "Object",
+      "devops",
+      "Kubernetes 系统中的实体，代表了集群的部分状态。",
+      {
+        "aliases": [
+          "Object"
+        ]
+      }
+    ],
+    [
+      "Operator 模式",
+      "Operator pattern",
+      "devops",
+      "一种用于管理自定义资源的专用控制器。",
+      {
+        "aliases": [
+          "Operator pattern"
+        ]
+      }
+    ],
+    [
+      "持久卷申领",
+      "Persistent Volume Claim",
+      "devops",
+      "声明在持久卷中定义的存储资源，以便可以将其挂载为容器中的卷。",
+      {
+        "aliases": [
+          "Persistent Volume Claim"
+        ]
+      }
+    ],
+    [
+      "持久卷",
+      "Persistent Volume",
+      "devops",
+      "持久卷是代表集群中一块存储空间的 API 对象。",
+      {
+        "aliases": [
+          "Persistent Volume"
+        ]
+      }
+    ],
+    [
+      "平台开发人员",
+      "Platform Developer",
+      "devops",
+      "定制 Kubernetes 平台以满足自己的项目需求的人。",
+      {
+        "aliases": [
+          "Platform Developer"
+        ]
+      }
+    ],
+    [
+      "Pod 干扰预算",
+      "Pod Disruption Budget",
+      "devops",
+      "PDB 是这样一种对象：它保证在出现主动干扰时，多实例应用的 Pod 不会少于一定的数量。",
+      {
+        "aliases": [
+          "Pod Disruption Budget",
+          "PDB"
+        ]
+      }
+    ],
+    [
+      "Pod 干扰",
+      "Pod Disruption",
+      "devops",
+      "自愿或非自愿地终止节点上的 Pod 的过程。",
+      {
+        "aliases": [
+          "Pod Disruption"
+        ]
+      }
+    ],
+    [
+      "Pod 生命周期",
+      "Pod Lifecycle",
+      "system",
+      "Pod 在其生命周期中经历的状态序列。",
+      {
+        "aliases": [
+          "Pod Lifecycle"
+        ]
+      }
+    ],
+    [
+      "Pod 优先级",
+      "Pod Priority",
+      "devops",
+      "Pod 优先级表示一个 Pod 相对于其他 Pod 的重要性。",
+      {
+        "aliases": [
+          "Pod Priority"
+        ]
+      }
+    ],
+    [
+      "Pod 安全策略",
+      "Pod Security Policy",
+      "security",
+      "移除了强制执行 Pod 安全限制的 API。",
+      {
+        "aliases": [
+          "Pod Security Policy"
+        ]
+      }
+    ],
+    [
+      "PodTemplate",
+      "PodTemplate",
+      "devops",
+      "创建 Pod 所用的模板。",
+      {
+        "aliases": [
+          "Pod 模板"
+        ]
+      }
+    ],
+    [
+      "Pod",
+      "Pod",
+      "devops",
+      "Pod 表示你的集群上一组正在运行的容器。"
+    ],
+    [
+      "PodGroup",
+      "PodGroup",
+      "devops",
+      "PodGroup 表示一组具有共同调度策略和约束的 Pod。"
+    ],
+    [
+      "抢占",
+      "Preemption",
+      "devops",
+      "Kubernetes 中的抢占逻辑通过驱逐节点上的低优先级 Pod 来帮助悬决的 Pod 找到合适的节点。",
+      {
+        "aliases": [
+          "Preemption"
+        ]
+      }
+    ],
+    [
+      "PriorityClass",
+      "PriorityClass",
+      "devops",
+      "从类别名称到 Pod 本身调度优先级的映射。"
+    ],
+    [
+      "探针",
+      "Probe",
+      "devops",
+      "由 kubelet 定期对 Pod 中的容器定期执行的一项检查。",
+      {
+        "aliases": [
+          "Probe"
+        ]
+      }
+    ],
+    [
+      "代理",
+      "Proxy",
+      "net",
+      "充当客户端和服务器之间的中介的应用程序。",
+      {
+        "aliases": [
+          "Proxy"
+        ]
+      }
+    ],
+    [
+      "QoS 类",
+      "QoS Class",
+      "system",
+      "QoS 类（Quality of Service Class）为 Kubernetes 提供了一种将集群中的 Pod 分为几个类并做出有关调度和驱逐决策的方法。",
+      {
+        "aliases": [
+          "QoS Class"
+        ]
+      }
+    ],
+    [
+      "量纲",
+      "Quantity",
+      "system",
+      "使用全数字来表示较小数值或使用 SI 后缀表示较大数值的表示法。",
+      {
+        "aliases": [
+          "Quantity"
+        ]
+      }
+    ],
+    [
+      "基于角色的访问控制",
+      "RBAC (Role-Based Access Control)",
+      "security",
+      "管理授权决策，允许管理员通过 Kubernetes API 动态配置访问策略。",
+      {
+        "aliases": [
+          "RBAC (Role-Based Access Control)",
+          "RBAC"
+        ]
+      }
+    ],
+    [
+      "ReplicaSet",
+      "ReplicaSet",
+      "system",
+      "ReplicaSet 确保一次运行指定数量的 Pod 副本。"
+    ],
+    [
+      "副本",
+      "Replica",
+      "system",
+      "Replica 是 Pod 的副本，通过维护相同的实例确保可用性、可扩缩性和容错性。",
+      {
+        "aliases": [
+          "Replica"
+        ]
+      }
+    ],
+    [
+      "副本控制器",
+      "ReplicationController",
+      "devops",
+      "一种管理多副本应用的（已弃用）的 API 对象。",
+      {
+        "aliases": [
+          "ReplicationController"
+        ]
+      }
+    ],
+    [
+      "资源配额",
+      "ResourceQuota",
+      "system",
+      "资源配额提供了限制每个命名空间的资源消耗总和的约束。",
+      {
+        "aliases": [
+          "ResourceQuota"
+        ]
+      }
+    ],
+    [
+      "ResourceClaim",
+      "ResourceClaim",
+      "devops",
+      "描述工作负载所需的资源，例如设备。ResourceClaim 可以针对某些 DeviceClass 请求设备。"
+    ],
+    [
+      "ResourceClaimTemplate",
+      "ResourceClaimTemplate",
+      "devops",
+      "定义一个模板，Kubernetes 据此创建 ResourceClaim。 此模板用于为每个 Pod 或 PodGroup 提供对一些独立、相似的资源的访问权限。"
+    ],
+    [
+      "ResourceSlice",
+      "ResourceSlice",
+      "devops",
+      "用一个相似资源所构成的池来表示一个或多个基础设施资源（如设备）。"
+    ],
+    [
+      "评审者",
+      "Reviewer",
+      "practice",
+      "评审者是负责评审项目的某部分代码以便提高代码质量和正确性的人。",
+      {
+        "aliases": [
+          "Reviewer"
+        ]
+      }
+    ],
+    [
+      "主题备用名称",
+      "Subject Alternative Name",
+      "security",
+      "X.509 证书的扩展字段，用于标识证书所适用的主机名或 IP 地址。",
+      {
+        "aliases": [
+          "Subject Alternative Name"
+        ]
+      }
+    ],
+    [
+      "Secret",
+      "Secret",
+      "devops",
+      "Secret 用于存储敏感信息，如密码、 OAuth 令牌和 SSH 密钥。"
+    ],
+    [
+      "安全上下文",
+      "Security Context",
+      "security",
+      "securityContext 字段定义 Pod 或容器的特权和访问控制设置，包括运行时 UID 和 GID。",
+      {
+        "aliases": [
+          "Security Context"
+        ]
+      }
+    ],
+    [
+      "选择算符",
+      "Selector",
+      "system",
+      "选择算符允许用户通过标签对一组资源对象进行筛选过滤。",
+      {
+        "aliases": [
+          "Selector"
+        ]
+      }
+    ],
+    [
+      "ServiceAccount",
+      "ServiceAccount",
+      "system",
+      "为在 Pod 中运行的进程提供标识。"
+    ],
+    [
+      "服务目录",
+      "Service Catalog",
+      "devops",
+      "服务目录是一种扩展 API，它能让 Kubernetes 集群中运行的应用易于使用外部托管的软件服务，例如云供应商提供的数据仓库服务。",
+      {
+        "aliases": [
+          "Service Catalog"
+        ]
+      }
+    ],
+    [
+      "服务",
+      "Service",
+      "system",
+      "将运行在一组 Pod 上的应用程序公开为网络服务的抽象方法。",
+      {
+        "aliases": [
+          "Service"
+        ]
+      }
+    ],
+    [
+      "混排切片",
+      "Shuffle-sharding",
+      "system",
+      "一种将请求指派给队列的技术，其隔离性好过对队列个数哈希取模的方式。",
+      {
+        "aliases": [
+          "Shuffle-sharding",
+          "Shuffle Sharding"
+        ]
+      }
+    ],
+    [
+      "边车容器",
+      "Sidecar Container",
+      "system",
+      "在 Pod 的整个生命期内保持运行的辅助容器。",
+      {
+        "aliases": [
+          "Sidecar Container"
+        ]
+      }
+    ],
+    [
+      "特别兴趣小组",
+      "SIG (special interest group)",
+      "practice",
+      "共同管理大范畴 Kubernetes 开源项目中某组件或方面的一组社区成员。",
+      {
+        "aliases": [
+          "SIG (special interest group)",
+          "SIG"
+        ]
+      }
+    ],
+    [
+      "规约",
+      "Spec",
+      "system",
+      "在 Kubernetes 清单中的此字段用来定义预期状态或预期配置。",
+      {
+        "aliases": [
+          "Spec"
+        ]
+      }
+    ],
+    [
+      "StatefulSet",
+      "StatefulSet",
+      "system",
+      "StatefulSet 用来管理某 Pod 集合的部署和扩缩，并为这些 Pod 提供持久存储和持久标识符。"
+    ],
+    [
+      "静态 Pod",
+      "Static Pod",
+      "system",
+      "静态 Pod（Static Pod）是指由特定节点上的 kubelet 守护进程直接管理的 Pod。",
+      {
+        "aliases": [
+          "Static Pod"
+        ]
+      }
+    ],
+    [
+      "StorageClass",
+      "Storage Class",
+      "devops",
+      "StorageClass 是管理员用来描述可用的不同存储类型的一种方法。",
+      {
+        "aliases": [
+          "Storage Class"
+        ]
+      }
+    ],
+    [
+      "sysctl",
+      "sysctl",
+      "devops",
+      "用于获取和设置 Unix 内核参数的接口。"
+    ],
+    [
+      "污点",
+      "Taint",
+      "system",
+      "污点是一种核心对象，包含三个必需的属性：key、value 和 effect。 污点会阻止在节点或节点组上调度 Pod。",
+      {
+        "aliases": [
+          "Taint"
+        ]
+      }
+    ],
+    [
+      "容忍度",
+      "Toleration",
+      "devops",
+      "容忍度是一种核心对象，包含三个必需的属性：key、value 和 effect。 容忍度允许将 Pod 调度到具有对应污点的节点或节点组上。",
+      {
+        "aliases": [
+          "Toleration"
+        ]
+      }
+    ],
+    [
+      "UID",
+      "UID",
+      "system",
+      "由 Kubernetes 系统生成、用来唯一标识对象的字符串。"
+    ],
+    [
+      "上游",
+      "Upstream (disambiguation)",
+      "practice",
+      "可以指代核心 Kubernetes 仓库或作为当前仓库派生来源的仓库。",
+      {
+        "aliases": [
+          "Upstream (disambiguation)",
+          "Uptream"
+        ]
+      }
+    ],
+    [
+      "用户名字空间",
+      "user namespace",
+      "security",
+      "一种让非特权用户模拟超级用户特权的 Linux 内核特性。",
+      {
+        "aliases": [
+          "user namespace"
+        ]
+      }
+    ],
+    [
+      "卷插件",
+      "Volume Plugin",
+      "devops",
+      "卷插件可以让 Pod 集成存储。",
+      {
+        "aliases": [
+          "Volume Plugin"
+        ]
+      }
+    ],
+    [
+      "卷",
+      "Volume",
+      "system",
+      "包含可被 Pod 中容器访问的数据的目录。",
+      {
+        "aliases": [
+          "Volume"
+        ]
+      }
+    ],
+    [
+      "监视",
+      "Watch",
+      "system",
+      "用于以流的形式跟踪 Kubernetes 中对象变化的动词。",
+      {
+        "aliases": [
+          "Watch"
+        ]
+      }
+    ],
+    [
+      "工作组",
+      "WG (working group)",
+      "practice",
+      "工作组是为了方便讨论和（或）推进执行一些短周期、窄范围、或者从委员会和 SIG 分离出来的项目、以及跨 SIG 的活动。",
+      {
+        "aliases": [
+          "WG (working group)",
+          "Working Group，WG"
+        ]
+      }
+    ],
+    [
+      "工作负载",
+      "Workload",
+      "system",
+      "工作负载是在 Kubernetes 上运行的应用。",
+      {
+        "aliases": [
+          "Workload"
+        ]
+      }
+    ],
+    [
+      "抽象",
+      "Abstraction",
+      "system",
+      "在计算的上下文中，抽象是一种对 服务 的消费者（消费者可以是计算机程序或人类）隐藏其细节的表示法，使系统更通用也更容易理解。 你的笔记本电脑的操作系统就是一个很好的例子。它把计算机工作的所有细节都抽象出来了。 你不需要知道任何关于CPU、内存以及程序如何被运行，你只需操作操作系统。",
+      {
+        "aliases": [
+          "Abstraction"
+        ]
+      }
+    ],
+    [
+      "敏捷软件开发",
+      "Agile Software Development",
+      "devops",
+      "强调迭代式开发和自组织团队的一组实践。 与只有在项目结束时才产生价值的瀑布式项目不同，敏捷软件开发更关注于持续的、增量的价值交付，以及交付流程本身的演进和提升。",
+      {
+        "aliases": [
+          "Agile Software Development"
+        ]
+      }
+    ],
+    [
+      "API 网关",
+      "API Gateway",
+      "net",
+      "API 网关是一种通过聚合多个应用程序的 API，并实现一站式管理的工具。 它允许组织将关键性功能移交到一个可集中管理的地方，例如身份验证和授权、限制应用程序之间的请求数量。 一个 API 网关则作为一个公共的接口，向 API 消费者（通常来自外部）提供服务。",
+      {
+        "aliases": [
+          "API Gateway"
+        ]
+      }
+    ],
+    [
+      "应用程序接口 (API)",
+      "Application Programming Interface (API)",
+      "devops",
+      "API (Application Programming Interface, 即应用程序接口) 是计算机程序间交互的一种方式。 就像人类可以通过网页与网站进行交互一样，API 允许计算机程序之间进行交互。 与人类的交互不同，API 可以限制对方可以问什么和不能问什么。",
+      {
+        "aliases": [
+          "Application Programming Interface (API)"
+        ]
+      }
+    ],
+    [
+      "自动伸缩",
+      "Autoscaling",
+      "system",
+      "自动伸缩，通常是指在计算资源方面，系统能够进行自动 伸缩 的能力。自动伸缩系统可在需要时自动添置资源，通过伸缩来满足不断变化的用户需求。 自动伸缩的过程各不相同，可基于不同指标进行配置，例如内存或处理时间。托管云服务相较于大多数本地部署环境，有更多的可选项和实施项，因此往往都搭配有自动伸缩功能。",
+      {
+        "aliases": [
+          "Autoscaling"
+        ]
+      }
+    ],
+    [
+      "裸机",
+      "Bare Metal Machine",
+      "devops",
+      "裸机是指一台物理计算机，更具体地说是一台服务器，它只有一个操作系统。这样区分在现代计算环境中很重要，因为许多（甚至可以说大部分）服务器都是虚拟机。物理服务器通常是一台相当大的计算机，内置强大的硬件。直接在该物理硬件上安装操作系统并运行应用程序，无需虚拟化，称为在“裸机”上运行。",
+      {
+        "aliases": [
+          "Bare Metal Machine"
+        ]
+      }
+    ],
+    [
+      "蓝绿部署",
+      "Blue Green Deployment",
+      "devops",
+      "蓝绿部署是一种以最小的停机时间更新运行中的计算机系统的策略。 运营商维护两个环境，被称为 \"蓝\" 和 \"绿\"。一个为生产流量服务（所有用户目前正在使用的版本），而另一个则被更新。 一旦在非活动（绿色）环境中的测试结束，生产流量就会被切换过来（通常通过使用负载平衡器）。 请注意。",
+      {
+        "aliases": [
+          "Blue Green Deployment"
+        ]
+      }
+    ],
+    [
+      "金丝雀部署",
+      "Canary Deployment",
+      "devops",
+      "金丝雀部署是一种部署策略，开始时有两个环境：一个有实时流量，另一个包含没有实时流量的更新代码。 流量逐渐从应用程序的原始版本转移到更新版本。 它可以从移动 1% 的实时流量开始，然后是 10%，25%，以此类推，直到所有流量都通过更新的版本运行。 企业可以在生产中测试新版本的软件，获得反馈。",
+      {
+        "aliases": [
+          "Canary Deployment"
+        ]
+      }
+    ],
+    [
+      "混沌工程",
+      "Chaos Engineering",
+      "security",
+      "混沌工程或 CE 是在生产中对 分布式系统 进行实验的学科，以建立对系统承受动荡和意外情况时能力的信心。",
+      {
+        "aliases": [
+          "Chaos Engineering"
+        ]
+      }
+    ],
+    [
+      "主从式架构",
+      "Client-Server Architecture",
+      "devops",
+      "在主从式架构（客户端-服务器架构）中，构成应用程序的逻辑（或代码）会被分成两个或多个组件： 一个期望工作被完成的客户端（例如，运行在你的 web 浏览器中的 Gmail web 应用程序）， 以及一个或多个满足该请求的服务器（例如，运行在云中心的谷歌计算机上的“发送电子邮件”服务）。 在这个例子中。",
+      {
+        "aliases": [
+          "Client-Server Architecture"
+        ]
+      }
+    ],
+    [
+      "云计算",
+      "Cloud Computing",
+      "devops",
+      "云计算是一种通过互联网按需提供计算资源（如 CPU、网络和磁盘功能）的模型。 云计算使用户能够在远程物理位置访问和使用计算能力。 云计算通常分为私有云和公有云，具体取决于云基础设施是专门用于某个组织还是分享开放的公共服务。",
+      {
+        "aliases": [
+          "Cloud Computing"
+        ]
+      }
+    ],
+    [
+      "云原生应用程序",
+      "Cloud Native Apps",
+      "devops",
+      "云原生应用程序专门设计用于利用 云计算 中的创新。 这些应用程序可以轻松地与其各自的云架构集成，充分利用云的资源和 可伸缩性 功能。 它还指利用云计算驱动的基础设施创新的应用程序。 今天的云原生应用程序包括在云提供商的数据中心和本地云原生平台上运行的应用程序。",
+      {
+        "aliases": [
+          "Cloud Native Apps"
+        ]
+      }
+    ],
+    [
+      "云原生安全",
+      "Cloud Native Security",
+      "security",
+      "云原生安全是一种将安全性构建到 云原生应用程序 中的方法。 它确保安全是从开发到生产的整个应用程序生命周期的一部分。 云原生安全旨在确保与传统安全模型相同的标准，同时适应云原生环境的特殊性，即快速的代码更改和高度短暂的基础设施。 云原生安全与称为 测试左移 的实践高度相关。",
+      {
+        "aliases": [
+          "Cloud Native Security"
+        ]
+      }
+    ],
+    [
+      "云原生技术",
+      "Cloud Native Technology",
+      "devops",
+      "云原生技术，也称为云原生技术栈，是用于构建 云原生应用程序 的技术。 使组织能够在公共云、私有云和混合云等现代动态环境中构建和运行可伸缩的应用程序，他们坚持“云的承诺”并充分利用云计算的优势。 它们从头开始设计，以利用云计算和容器的功能，服务网格、微服务和不可变的基础设施就是这种方法的例证。",
+      {
+        "aliases": [
+          "Cloud Native Technology"
+        ]
+      }
+    ],
+    [
+      "容器镜像",
+      "Container Image",
+      "devops",
+      "容器镜像是一个不可改变的静态文件，包含创建容器的依赖性。 这些依赖可能包括一个可执行的二进制文件、系统库、系统工具、环境变量和其他必要的平台设置。 容器镜像是应用程序容器化的结果，通常存储在容器注册表中，在那里可以下载并使用容器运行时接口（CRI）作为一个孤立的进程运行。",
+      {
+        "aliases": [
+          "Container Image"
+        ]
+      }
+    ],
+    [
+      "容器编排",
+      "Container Orchestration",
+      "devops",
+      "容器编排指的是在动态的环境中自动管理容器化应用的生命周期。 这通过一个容器编排器（大多是 Kubernetes）来执行，实现部署、（自动）扩缩、自愈和监控。 编排是一个比喻用词：编排工具像乐队指挥一样指挥众多容器，确保每个容器（或乐手）各行其是。",
+      {
+        "aliases": [
+          "Container Orchestration"
+        ]
+      }
+    ],
+    [
+      "容器化",
+      "Containerization",
+      "devops",
+      "容器化是将一个应用程序及其依赖关系捆绑到 容器镜像中的过程。 容器构建过程需要遵守 开放容器倡议(OCI) 标准。 只要输出的是一个符合这个标准的容器镜像，使用哪种容器化工具并不重要。",
+      {
+        "aliases": [
+          "Containerization"
+        ]
+      }
+    ],
+    [
+      "容器即服务 (CaaS)",
+      "Containers as a Service",
+      "devops",
+      "容器即服务（CaaS）是一种云服务，有助于使用基于 容器 的 抽象 管理和部署应用程序。 这项服务可以部署在企业内部或云中。",
+      {
+        "aliases": [
+          "Containers as a Service"
+        ]
+      }
+    ],
+    [
+      "持续交付 (CD)",
+      "Continuous Delivery (CD)",
+      "devops",
+      "持续交付，通常缩写为 CD，是一套实践，其中代码的变化被自动部署到验收环境中（或者，在持续部署的情况下，部署到生产中）。 CD 关键是包括确保软件在部署前得到充分测试的程序，并提供一种在认为必要时回滚修改的方法。 持续集成（CI）是实现持续交付的第一步（也就是说，在测试和部署之前。",
+      {
+        "aliases": [
+          "Continuous Delivery (CD)"
+        ]
+      }
+    ],
+    [
+      "持续部署 (CD)",
+      "Continuous Deployment (CD)",
+      "devops",
+      "持续部署，通常缩写为 CD，通过将已经完成的软件直接部署到生产环境，比持续交付更进了一步。持续部署 (CD) 与持续集成(CI) 一起，通常被称为 CI/CD。 CI 流程测试给定应用程序的修改是否正确，CD 流程自动部署企业测试环境的代码更改到生产环境。",
+      {
+        "aliases": [
+          "Continuous Deployment (CD)"
+        ]
+      }
+    ],
+    [
+      "持续集成 (CI)",
+      "Continuous integration (CI)",
+      "devops",
+      "持续集成，通常缩写为CI，是尽可能定期集成代码变化的做法。 CI 是 持续交付（CD）的前提。 传统上，CI 过程从代码修改提交到源码控制系统（Git、Mercurial 或 Subversion）时开始，以准备被CD系统使用的测试工件结束。",
+      {
+        "aliases": [
+          "Continuous integration (CI)"
+        ]
+      }
+    ],
+    [
+      "数据中心",
+      "Datacenter",
+      "devops",
+      "数据中心是专门设计用于容纳计算机（通常是服务器）的专用建筑物或设施。 数据中心往往连接到高速互联网线路，尤其是专注于 云计算 的数据中心。 数据中心所在的建筑物还配备了即使在发生负面事件时也能维持服务的设备，例如在停电期间提供电力的发电机，以及处理计算机产生的废热的强大空调。",
+      {
+        "aliases": [
+          "Datacenter"
+        ]
+      }
+    ],
+    [
+      "数据库即服务 (DBaaS)",
+      "Database as a Service (DBaaS)",
+      "devops",
+      "数据库即服务 (DBaaS) 是由云运营商（公共或私有）管理的服务，它支持应用程序，而无需应用程序团队执行传统的数据库管理功能。 DBaaS 允许应用程序开发人员利用数据库，而无需成为专家或聘请数据库管理员 (DBA) 来保持数据库最新状态。",
+      {
+        "aliases": [
+          "Database as a Service (DBaaS)"
+        ]
+      }
+    ],
+    [
+      "调试",
+      "Debugging",
+      "devops",
+      "调试是从计算机程序、软件或系统中查找并解决故障（或错误） 以获得预期结果的过程或活动。 故障是导致不正确或不符合预期结果的缺陷或问题。",
+      {
+        "aliases": [
+          "Debugging"
+        ]
+      }
+    ],
+    [
+      "开发运维 (DevOps)",
+      "DevOps",
+      "devops",
+      "开发运维是一种方法论，其中团队拥有从应用程序开发到生产操作的整个过程，因此 DevOps，它不仅仅是实施一套技术，还需要文化和流程的彻底转变。 DevOps 需要一组工程师来处理小组件（相对于整个功能），从而减少交接——一个常见的错误来源。",
+      {
+        "aliases": [
+          "DevOps"
+        ]
+      }
+    ],
+    [
+      "分布式应用",
+      "Distributed Apps",
+      "devops",
+      "分布式应用是一种应用，其功能被分解成多个较小的独立部分。 分布式应用通常由单独的 微服务 组成，处理更广泛应用中的不同问题。 在云原生环境中，各个组件通常作为 容器 在 集群 上运行。",
+      {
+        "aliases": [
+          "Distributed Apps"
+        ]
+      }
+    ],
+    [
+      "分布式系统",
+      "Distributed System",
+      "devops",
+      "分布式系统是通过网络连接的自主计算元素的集合，在用户看来是一个单一的连贯系统。 一般被称为 节点，这些组件可以是硬件设备（如电脑、手机）或软件进程。 节点被编程以实现一个共同的目标，为了协作，它们通过网络交换信息。",
+      {
+        "aliases": [
+          "Distributed System"
+        ]
+      }
+    ],
+    [
+      "边缘计算",
+      "Edge Computing",
+      "devops",
+      "边缘计算是一种分布式系统方法，它将一些存储和计算容量从主数据中心转移到其他数据源。 采集的数据在本地（例如在工厂车间、商店或整个城市）进行计算，而不是发送到集中的数据中心进行处理和分析。 这些本地处理单元或设备代表系统的边缘，而数据中心是这些边缘的中心。 边缘计算的输出被发送回主数据中心进一步处理。",
+      {
+        "aliases": [
+          "Edge Computing"
+        ]
+      }
+    ],
+    [
+      "事件驱动架构",
+      "Event-Driven Architecture",
+      "devops",
+      "事件驱动架构是一种提倡事件的创建、处理和消费的软件架构。 事件是对应用程序状态的任何更改。 例如，在拼车应用上叫车代表一个事件。 这种架构创建了一个结构，在该结构中，事件可以从它们的源（请求乘车的应用程序）正确地路由到所需的接收器（附近可用司机的应用程序）。",
+      {
+        "aliases": [
+          "Event-Driven Architecture"
+        ]
+      }
+    ],
+    [
+      "防火墙",
+      "Firewall",
+      "security",
+      "防火墙是一个基于特定规则过滤网络流量的系统。防火墙可以是硬件、软件，或者是两者的组合。",
+      {
+        "aliases": [
+          "Firewall"
+        ]
+      }
+    ],
+    [
+      "水平伸缩",
+      "Horizontal Scaling",
+      "devops",
+      "水平伸缩是一种通过添加更多节点来增加系统容量的技术，而不是向单个节点添加更多计算资源（后者称为垂直伸缩）。 假设我们有一个 4GB RAM 的系统，并且想要将其容量增加到 16GB RAM，水平伸缩意味着通过添加 4 x 4GB RAM 而不是切换到 16GB RAM 系统来实现。",
+      {
+        "aliases": [
+          "Horizontal Scaling"
+        ]
+      }
+    ],
+    [
+      "幂等性",
+      "Idempotence",
+      "system",
+      "在数学或计算机科学中，幂等性描述了一种操作，无论你执行多少次，都会得到相同的结果。如果参数相同，一个幂等操作就不会影响它调用的应用程序。",
+      {
+        "aliases": [
+          "Idempotence"
+        ]
+      }
+    ],
+    [
+      "基础设施即服务 (IaaS)",
+      "Infrastructure as a Service (IaaS)",
+      "devops",
+      "基础设施即服务，或者 IaaS ，是一种 云计算 服务模型， 它提供 物理 或 虚拟 的计算、存储和网络资源，使用按需按量的计费模式。 云提供商拥有和管理软件和硬件设施，可供消费者在公共、私有或混合云部署和使用。",
+      {
+        "aliases": [
+          "Infrastructure as a Service (IaaS)"
+        ]
+      }
+    ],
+    [
+      "基础设施即代码 (IaC)",
+      "Infrastructure as Code (IaC)",
+      "devops",
+      "基础设施即代码是将基础设施的定义存储为一个或多个文件的做法。 这取代了通常通过 shell 脚本或其他配置工具手动配置基础架构即服务的传统模型。",
+      {
+        "aliases": [
+          "Infrastructure as Code (IaC)"
+        ]
+      }
+    ],
+    [
+      "Kubernetes",
+      "Kubernetes",
+      "devops",
+      "Kubernetes，通常缩写为K8s，是一种流行的现代基础设施自动化的开源工具。 它就像一个数据中心的操作系统，管理在 分布式系统 上运行的应用程序（就像你笔记本上的操作系统，管理你的应用程序）。"
+    ],
+    [
+      "负载均衡器",
+      "Load Balancer",
+      "devops",
+      "负载均衡器是一种在后端的一组服务器之间分配传入网络流量的方法。 该解决方案可以是基于软件或硬件的。",
+      {
+        "aliases": [
+          "Load Balancer"
+        ]
+      }
+    ],
+    [
+      "松耦合架构",
+      "Loosely Coupled Architecture",
+      "system",
+      "松耦合架构（紧耦合架构的相反范式）是一种架构风格， 其中应用程序的各个组件彼此独立构建。 每个组件，有时称为 微服务，都是为了执行特定功能而构建的， 以便被任意数量的其他服务使用。 这种模式的实现通常比紧耦合架构慢。 但有许多好处，特别是随着应用程序的不断扩展。",
+      {
+        "aliases": [
+          "Loosely Coupled Architecture"
+        ]
+      }
+    ],
+    [
+      "微服务",
+      "",
+      "devops",
+      "微服务是一种利用云原生技术进行应用开发的现代方法。虽然 Netflix 这类现代应用程序看起来是一个单体应用，但它们实际上是许多较小的服务组成的集合 —— 所有的服务都密切配合。 例如，一个允许你访问、搜索和预览视频的单一页面很可能是由较小的服务提供的。"
+    ],
+    [
+      "单体应用",
+      "Monolithic Apps",
+      "devops",
+      "单体应用在一个简单可部署的程序中包含所有的功能。在制作一个应用程序时，这通常是最简单和最容易的开始。 然而，一旦应用程序的复杂性增加，单体式就会变得难以维护。随着更多的开发人员在同一个代码库上工作，发生冲突性变化的可能性和开发人员之间的人际沟通的需要就会增加。",
+      {
+        "aliases": [
+          "Monolithic Apps"
+        ]
+      }
+    ],
+    [
+      "多租户模式",
+      "Multitenancy",
+      "system",
+      "多租户模式指的是通过单次软件安装为多个租户提供服务。 租户是一个用户、应用程序或一组用户/应用程序，租户们使用各自的数据集来操控同一个软件。 这些租户不共享数据（除非软件的所有者明确授权），甚至可能未意识到彼此的存在。",
+      {
+        "aliases": [
+          "Multitenancy"
+        ]
+      }
+    ],
+    [
+      "双向传输层安全性协议（mTLS）",
+      "Mutual Transport Layer Security (mTLS)",
+      "security",
+      "双向 TLS (mTLS) 是一种用于对两个服务之间发送的消息进行身份验证和加密的技术。 双向 TLS (mTLS) 是标准的传输层安全性协议(TLS) ， 但不是仅验证一个连接的身份，而是验证双方。",
+      {
+        "aliases": [
+          "Mutual Transport Layer Security (mTLS)"
+        ]
+      }
+    ],
+    [
+      "可观测性",
+      "Observability",
+      "devops",
+      "可观测性指的是从所观测的系统采集信号，持续生成并发现可执行的洞察力。 换言之，可观测性允许用户从某个系统的外部输出中洞察该系统的状态并采取（修正）措施。",
+      {
+        "aliases": [
+          "Observability"
+        ]
+      }
+    ],
+    [
+      "平台即服务 (PaaS)",
+      "Platform as a Service (PaaS)",
+      "devops",
+      "平台即服务（PaaS）是应用程序开发团队部署和运行其应用程序的外部平台。 Heroku、Cloud Foundry、App Engine 是 PaaS 产品的示例。",
+      {
+        "aliases": [
+          "Platform as a Service (PaaS)"
+        ]
+      }
+    ],
+    [
+      "策略即代码 (PaC)",
+      "Policy as Code (PaC)",
+      "devops",
+      "策略即代码是将一些策略的定义存储为一个或多个机器可读和可处理格式文件的做法。 这取代了在传统模型中，以人类可读的形式记录在单独文档中的策略。",
+      {
+        "aliases": [
+          "Policy as Code (PaC)"
+        ]
+      }
+    ],
+    [
+      "可移植性",
+      "Portability",
+      "system",
+      "可移植性是一种软件特征，一种可重用性的形式，有助于避免“锁定”到某些操作环境， 例如云提供商、操作系统或供应商。",
+      {
+        "aliases": [
+          "Portability"
+        ]
+      }
+    ],
+    [
+      "可靠性",
+      "Reliability",
+      "system",
+      "从云原生的角度来看，可靠性是指系统对故障的响应能力。 如果我们有一个可以在基础架构更改和单个组件发生故障时继续工作的分布式系统 ，那么它是可靠的。 另一方面，如果它很容易出现故障，并且需要操作人员手动干预以保持其运行，则它是不可靠的。 云原生应用程序 的目标是构建内在可靠的系统。",
+      {
+        "aliases": [
+          "Reliability"
+        ]
+      }
+    ],
+    [
+      "可伸缩性",
+      "Scalability",
+      "system",
+      "可伸缩性指的是一个系统能有多大的发展。这就是增加做任何系统应该做的事情的能力。 例如，Kubernetes 集群 通过增加或减少 容器化 应用程序的数量来进行伸缩，但这种可伸缩性取决于几个因素。 它有多少节点，每个节点可以处理多少个容器，控制平面可以支持多少条记录和操作？",
+      {
+        "aliases": [
+          "Scalability"
+        ]
+      }
+    ],
+    [
+      "安全混沌工程",
+      "Security Chaos Engineering",
+      "security",
+      "安全混沌工程（SCE） 是基于混沌工程的学科。 SCE 是指在分布式系统上执行主动安全实验，以建立对系统抵御动荡和恶意条件能力的信心。安全混沌工程师使用科学方法来不断实现这一点，这些方法包括稳态、假设、持续验证、经验教训和缓解实施。",
+      {
+        "aliases": [
+          "Security Chaos Engineering"
+        ]
+      }
+    ],
+    [
+      "自愈",
+      "Self Healing",
+      "system",
+      "一个自愈系统无需任何人为干预就能从某些类型的故障中恢复。 这种系统有一个“收敛”或“控制”循环，可以主动查看系统的实际状态并将其与操作员最初期望的状态进行比较。 如果有所差异（例如运行的应用程序实例数少于预期实例数），它将采取修正措施（例如启动新的实例）。",
+      {
+        "aliases": [
+          "Self Healing"
+        ]
+      }
+    ],
+    [
+      "服务发现",
+      "Service Discovery",
+      "net",
+      "服务发现是查找组成服务各个实例的过程。 服务发现工具持续跟踪构成服务的各种节点或端点。",
+      {
+        "aliases": [
+          "Service Discovery"
+        ]
+      }
+    ],
+    [
+      "服务网格",
+      "Service Mesh",
+      "net",
+      "在 微服务 的理念里，应用程序被分解成多个较小的 服务，通过网络进行通信。 就像你的 WIFI 网络一样，计算机网络本质上是不可靠的，可被黑客攻击的，而且往往很慢。 服务网格通过管理服务之间的流量（即通信），并在所有服务中统一添加 可靠性、可观察性 和安全功能来解决这一系列新的挑战。",
+      {
+        "aliases": [
+          "Service Mesh"
+        ]
+      }
+    ],
+    [
+      "服务代理",
+      "Service Proxy",
+      "net",
+      "服务代理拦截进出某项 服务 的流量，对其应用一些逻辑，然后将该流量转发给另一项服务。 它本质上是一个“中间人”，收集有关网络流量的信息，并决定是否对其应用规则。",
+      {
+        "aliases": [
+          "Service Proxy"
+        ]
+      }
+    ],
+    [
+      "左移 (Shift Left)",
+      "Shift Left",
+      "devops",
+      "如果将软件开发的生命周期视为一个从左到右执行的阶段线，左移中的左指的是这个生命周期的早期阶段。 左移是在软件开发生命周期的早期阶段实施测试、安全或其他开发实践，而不是朝着结尾方向（右移）进行的实践。",
+      {
+        "aliases": [
+          "Shift Left"
+        ]
+      }
+    ],
+    [
+      "网站可靠性工程（SRE)",
+      "Site Reliability Engineering",
+      "devops",
+      "网站可靠性工程（SRE） 是一门结合运营和软件工程的学科。 后者特别适用于基础设施和运营问题。 这意味着，网站可靠性工程师不是构建产品功能，而是构建系统来运行应用程序。 与 DevOps 有相似之处，但 DevOps 专注于将代码投入生产环境， 而 SRE 是确保在生产环境中运行的代码正常工作。",
+      {
+        "aliases": [
+          "Site Reliability Engineering"
+        ]
+      }
+    ],
+    [
+      "有状态应用",
+      "Stateful Apps",
+      "devops",
+      "当我们说到有状态（和无状态）应用时， 状态是指应用需要存储以便其按设计运行的任何数据。 例如，任何能记住您购物车的在线商店都是有状态应用。",
+      {
+        "aliases": [
+          "Stateful Apps"
+        ]
+      }
+    ],
+    [
+      "无状态应用",
+      "",
+      "devops",
+      "无状态应用不会在应用所在的服务器上保存任何客户端会话（状态）数据。 每个会话都像第一次一样执行，响应不依赖于前一个会话的数据并提供使用打印服务、内容分发网络（CDN）或 Web 服务器的功能，以处理每个短期请求。 例如，有人在搜索引擎中搜索某个问题并按下了回车键。"
+    ],
+    [
+      "紧耦合架构",
+      "",
+      "system",
+      "紧耦合架构（松耦合架构的相反范式）是一种架构风格， 其中许多应用程序组件相互依赖。 这意味着一个组件的更改可能会影响其他组件。 它通常比松耦合架构更容易实现， 但会使系统更容易受到级联故障的影响。 它还意味着需要协调各个组件的部署， 这可能会拖累开发人员的生产力。"
+    ],
+    [
+      "传输层安全性协议（TLS)",
+      "Transport Layer Security (TLS)",
+      "security",
+      "传输层安全性协议 (TLS) 是一种旨在为网络通信提供更高安全性的协议。它确保通过因特网发送的数据安全交付，避免可能的数据监视和/或篡改。该协议广泛用于消息传递、电子邮件等应用程序中。",
+      {
+        "aliases": [
+          "Transport Layer Security (TLS)"
+        ]
+      }
+    ],
+    [
+      "版本控制",
+      "Version Control",
+      "devops",
+      "源代码管理（或版本控制）是一种跟踪和管理文档更改的行为。 它是一个持续记录单个文件或一组文件变化的系统，以便你在以后可以回退到特定版本。",
+      {
+        "aliases": [
+          "Version Control"
+        ]
+      }
+    ],
+    [
+      "垂直伸缩",
+      "Vertical Scaling",
+      "devops",
+      "垂直伸缩，也称为“向上和向下伸缩”，是一种通过在工作负载增加时向单个节点添加CPU和内存来增加系统容量的技术。 假设您有一台 4GB RAM 的计算机，并且想要将其容量增加到 16GB RAM，垂直伸缩就意味着切换到 16GB RAM 系统。 （请参阅水平伸缩了解不同的伸缩方法。）。",
+      {
+        "aliases": [
+          "Vertical Scaling"
+        ]
+      }
+    ],
+    [
+      "虚拟机",
+      "Virtual Machine",
+      "devops",
+      "虚拟机（VM）是一台计算机及其操作系统，不受特定硬件的约束。 虚拟机依靠 虚拟化 将一台物理计算机分割成多个虚拟计算机。 这种分离使组织和基础设施供应商能够轻松地创建和销毁虚拟机，而不影响底层硬件。",
+      {
+        "aliases": [
+          "Virtual Machine"
+        ]
+      }
+    ],
+    [
+      "虚拟化",
+      "Virtualization",
+      "devops",
+      "虚拟化，在云原生计算的背景下，是指将一台物理计算机，有时称为服务器，并允许它运行多个隔离的操作系统的过程。 这些隔离的操作系统及其专用的计算资源（CPU、内存和网络）被称为虚拟机或VM。 当我们谈论虚拟机时，我们在谈论一个软件定义的计算机。 它看起来和行动都像一台真正的计算机。",
+      {
+        "aliases": [
+          "Virtualization"
+        ]
+      }
+    ],
+    [
+      "零信任架构",
+      "Zero Trust Architecture",
+      "security",
+      "零信任架构规定了一种完全消除信任的IT系统设计和实施方法。其核心原则是 \"永不信任，永远验证\"，设备或系统本身在与系统的其他组件进行通信时，总是先验证自己。 在今天的许多网络中，在企业网络中，内部的系统和设备可以自由地相互通信，因为它们在企业网络外围的信任边界内。 零信任架构采取了相反的方法。",
+      {
+        "aliases": [
+          "Zero Trust Architecture"
+        ]
+      }
+    ],
+    [
+      "GitHub",
+      "GitHub",
+      "practice",
+      "全球最大的代码托管与开源协作平台，程序员的「代码朋友圈」。"
+    ],
+    [
+      "Star",
+      "Star",
+      "practice",
+      "给项目点赞收藏，表示「这个有用」。",
+      {
+        "aliases": [
+          "星星"
+        ]
+      }
+    ],
+    [
+      "Fork",
+      "Fork",
+      "practice",
+      "复制别人的仓库到你账号下，可自由修改。",
+      {
+        "aliases": [
+          "复刻"
+        ]
+      }
+    ],
+    [
+      "Pull Request",
+      "Pull Request",
+      "practice",
+      "请求把你的改动合并进原项目。",
+      {
+        "aliases": [
+          "PR"
+        ]
+      }
+    ],
+    [
+      "Issue",
+      "Issue",
+      "practice",
+      "提 Bug、提需求、讨论问题的工单。",
+      {
+        "aliases": [
+          "议题"
+        ]
+      }
+    ],
+    [
+      "Clone",
+      "Clone",
+      "practice",
+      "把远程仓库完整下载到本机。",
+      {
+        "aliases": [
+          "克隆"
+        ]
+      }
+    ],
+    [
+      "Commit",
+      "Commit",
+      "practice",
+      "保存一次代码快照，附带说明。",
+      {
+        "aliases": [
+          "提交"
+        ]
+      }
+    ],
+    [
+      "Branch",
+      "Branch",
+      "practice",
+      "平行开发线，互不影响。",
+      {
+        "aliases": [
+          "分支"
+        ]
+      }
+    ],
+    [
+      "Merge",
+      "Merge",
+      "practice",
+      "把分支改动合进主分支。",
+      {
+        "aliases": [
+          "合并"
+        ]
+      }
+    ],
+    [
+      "Repository",
+      "Repository",
+      "practice",
+      "存放项目全部文件与历史的文件夹。",
+      {
+        "aliases": [
+          "仓库"
+        ]
+      }
+    ],
+    [
+      "开源",
+      "Open Source",
+      "practice",
+      "公开源代码，他人可查看、使用、贡献。",
+      {
+        "aliases": [
+          "Open Source"
+        ]
+      }
+    ],
+    [
+      "开源协议",
+      "License",
+      "practice",
+      "规定别人如何使用你的代码。",
+      {
+        "aliases": [
+          "License"
+        ]
+      }
+    ],
+    [
+      "README",
+      "README",
+      "practice",
+      "项目首页说明，第一眼看到的内容。"
+    ],
+    [
+      "Release",
+      "Release",
+      "practice",
+      "打包标记的稳定版本，方便下载。",
+      {
+        "aliases": [
+          "发行版"
+        ]
+      }
+    ],
+    [
+      "Contributor",
+      "Contributor",
+      "practice",
+      "参与过项目代码或文档的人。",
+      {
+        "aliases": [
+          "贡献者"
+        ]
+      }
+    ],
+    [
+      "大语言模型",
+      "LLM",
+      "ai",
+      "读懂并生成人类语言的 AI 模型。",
+      {
+        "aliases": [
+          "LLM"
+        ]
+      }
+    ],
+    [
+      "Token",
+      "Token",
+      "ai",
+      "模型处理文本的最小单位，影响计费与长度。",
+      {
+        "aliases": [
+          "词元"
+        ]
+      }
+    ],
+    [
+      "提示词",
+      "Prompt",
+      "ai",
+      "你给 AI 的指令或问题。",
+      {
+        "aliases": [
+          "Prompt"
+        ]
+      }
+    ],
+    [
+      "RAG",
+      "RAG",
+      "ai",
+      "先查资料再回答，减少胡编。",
+      {
+        "aliases": [
+          "检索增强"
+        ]
+      }
+    ],
+    [
+      "Agent",
+      "Agent",
+      "ai",
+      "能自己规划步骤、调用工具的 AI。",
+      {
+        "aliases": [
+          "智能体"
+        ]
+      }
+    ],
+    [
+      "MCP",
+      "Model Context Protocol",
+      "ai",
+      "AI 连接外部工具和数据的标准「插座」。",
+      {
+        "aliases": [
+          "Model Context Protocol"
+        ]
+      }
+    ],
+    [
+      "Skills",
+      "Skills",
+      "ai",
+      "教 AI 在特定场景下怎么做事的说明书。",
+      {
+        "aliases": [
+          "技能"
+        ]
+      }
+    ],
+    [
+      "函数调用",
+      "Function Calling",
+      "ai",
+      "AI 决定调用哪个 API 并传参数。",
+      {
+        "aliases": [
+          "Function Calling"
+        ]
+      }
+    ],
+    [
+      "向量嵌入",
+      "Embedding",
+      "ai",
+      "把文字变成数字向量，便于语义搜索。",
+      {
+        "aliases": [
+          "Embedding"
+        ]
+      }
+    ],
+    [
+      "微调",
+      "Fine-tuning",
+      "ai",
+      "在通用模型上继续训练以适应特定任务。",
+      {
+        "aliases": [
+          "Fine-tuning"
+        ]
+      }
+    ],
+    [
+      "幻觉",
+      "Hallucination",
+      "ai",
+      "AI 自信地编造不存在的事实。",
+      {
+        "aliases": [
+          "Hallucination"
+        ]
+      }
+    ],
+    [
+      "上下文窗口",
+      "Context Window",
+      "ai",
+      "模型一次能「记住」的对话长度上限。",
+      {
+        "aliases": [
+          "Context Window"
+        ]
+      }
+    ],
+    [
+      "温度",
+      "Temperature",
+      "ai",
+      "控制输出随机性，越高越发散。",
+      {
+        "aliases": [
+          "Temperature"
+        ]
+      }
+    ],
+    [
+      "系统提示",
+      "System Prompt",
+      "ai",
+      "设定 AI 角色与行为边界的隐藏指令。",
+      {
+        "aliases": [
+          "System Prompt"
+        ]
+      }
+    ],
+    [
+      "推理",
+      "Inference",
+      "ai",
+      "模型运行生成结果的过程。",
+      {
+        "aliases": [
+          "Inference"
+        ]
+      }
+    ],
+    [
+      "训练",
+      "Training",
+      "ai",
+      "用数据调整模型参数的学习过程。",
+      {
+        "aliases": [
+          "Training"
+        ]
+      }
+    ],
+    [
+      "多模态",
+      "Multimodal",
+      "ai",
+      "同时理解文字、图片、音频等。",
+      {
+        "aliases": [
+          "Multimodal"
+        ]
+      }
+    ],
+    [
+      "氛围编程",
+      "Vibe Coding",
+      "ai",
+      "用自然语言描述意图，让 AI 写大部分代码。",
+      {
+        "aliases": [
+          "Vibe Coding"
+        ]
+      }
+    ],
+    [
+      "Harness",
+      "Harness Engineering",
+      "ai",
+      "给 AI Agent 设计可控、可验证的工作环境。",
+      {
+        "aliases": [
+          "Harness Engineering",
+          "驾驭工程"
+        ]
+      }
+    ],
+    [
+      "工具使用",
+      "Tool Use",
+      "ai",
+      "AI 调用搜索、代码执行等外部能力。",
+      {
+        "aliases": [
+          "Tool Use"
+        ]
+      }
+    ],
+    [
+      "思维链",
+      "Chain-of-Thought",
+      "ai",
+      "让 AI 分步推理，提高复杂题正确率。",
+      {
+        "aliases": [
+          "Chain-of-Thought"
+        ]
+      }
+    ],
+    [
+      "护栏",
+      "Guardrails",
+      "ai",
+      "限制 AI 输出范围的安全规则。",
+      {
+        "aliases": [
+          "Guardrails"
+        ]
+      }
+    ],
+    [
+      "Cursor",
+      "Cursor",
+      "ai",
+      "内置 AI 的代码编辑器，基于 VS Code。"
+    ],
+    [
+      "Copilot",
+      "Copilot",
+      "ai",
+      "AI 在编码时实时补全与建议。",
+      {
+        "aliases": [
+          "副驾驶"
+        ]
+      }
+    ],
+    [
+      "Claude Code",
+      "Claude Code",
+      "ai",
+      "Anthropic 的终端 AI 编程 Agent。"
+    ],
+    [
+      "Claude Desktop",
+      "Claude Desktop",
+      "ai",
+      "Anthropic 官方桌面聊天客户端。"
+    ],
+    [
+      "Rules",
+      "Rules",
+      "ai",
+      "持久化告诉 AI 项目规范与偏好。",
+      {
+        "aliases": [
+          "规则"
+        ]
+      }
+    ],
+    [
+      "Composer",
+      "Composer",
+      "ai",
+      "Cursor 中多文件协同编辑的 AI 模式。"
+    ],
+    [
+      "Tab 补全",
+      "Tab Completion",
+      "ai",
+      "按 Tab 接受 AI 生成的代码建议。",
+      {
+        "aliases": [
+          "Tab Completion"
+        ]
+      }
+    ],
+    [
+      "代码库索引",
+      "Codebase Index",
+      "ai",
+      "AI 理解整个项目结构的预处理。",
+      {
+        "aliases": [
+          "Codebase Index"
+        ]
+      }
+    ],
+    [
+      "MCP 服务器",
+      "MCP Server",
+      "ai",
+      "对外暴露工具能力，供 AI 客户端连接。",
+      {
+        "aliases": [
+          "MCP Server"
+        ]
+      }
+    ],
+    [
+      "Agent 模式",
+      "Agent Mode",
+      "ai",
+      "AI 自动多步执行：读文件、改代码、跑命令。",
+      {
+        "aliases": [
+          "Agent Mode"
+        ]
+      }
+    ],
+    [
+      "HTML",
+      "HTML",
+      "web",
+      "网页结构的标记语言。"
+    ],
+    [
+      "CSS",
+      "CSS",
+      "web",
+      "控制网页样式与布局。"
+    ],
+    [
+      "JavaScript",
+      "JavaScript",
+      "web",
+      "浏览器与 Node 的脚本语言。"
+    ],
+    [
+      "TypeScript",
+      "TypeScript",
+      "web",
+      "带类型的 JavaScript 超集。"
+    ],
+    [
+      "React",
+      "React",
+      "web",
+      "组件化 UI 库，Facebook 出品。"
+    ],
+    [
+      "Vue",
+      "Vue",
+      "web",
+      "渐进式前端框架，国内流行。"
+    ],
+    [
+      "Node.js",
+      "Node.js",
+      "web",
+      "服务器端运行 JavaScript。"
+    ],
+    [
+      "打包工具",
+      "Bundler",
+      "web",
+      "合并压缩前端资源。",
+      {
+        "aliases": [
+          "Bundler"
+        ]
+      }
+    ],
+    [
+      "SEO",
+      "SEO",
+      "web",
+      "让搜索引擎更好收录网站。"
+    ],
+    [
+      "服务端渲染",
+      "SSR",
+      "web",
+      "服务器生成 HTML 再发给浏览器。",
+      {
+        "aliases": [
+          "SSR"
+        ]
+      }
+    ],
+    [
+      "单页应用",
+      "SPA",
+      "web",
+      "一个 HTML 页内切换视图。",
+      {
+        "aliases": [
+          "SPA"
+        ]
+      }
+    ],
+    [
+      "CDN",
+      "CDN",
+      "web",
+      "就近缓存静态资源加速访问。"
+    ],
+    [
+      "WebSocket",
+      "WebSocket",
+      "web",
+      "浏览器与服务器双向实时通道。"
+    ],
+    [
+      "GraphQL",
+      "GraphQL",
+      "web",
+      "客户端指定要哪些字段的查询语言。"
+    ],
+    [
+      "HTTP",
+      "HTTP",
+      "web",
+      "浏览器与服务器通信协议。"
+    ],
+    [
+      "HTTPS",
+      "HTTPS",
+      "web",
+      "加密的 HTTP。"
+    ],
+    [
+      "DNS",
+      "DNS",
+      "web",
+      "域名翻译成 IP 地址。"
+    ],
+    [
+      "TCP",
+      "TCP",
+      "web",
+      "可靠有序的数据传输协议。"
+    ],
+    [
+      "UDP",
+      "UDP",
+      "web",
+      "快速但可能丢包传输。"
+    ],
+    [
+      "本地主机",
+      "Localhost",
+      "web",
+      "本机地址 127.0.0.1。",
+      {
+        "aliases": [
+          "Localhost"
+        ]
+      }
+    ],
+    [
+      "量化",
+      "Quantization",
+      "ai",
+      "降低模型精度以减小体积、加速推理。",
+      {
+        "aliases": [
+          "Quantization"
+        ]
+      }
+    ],
+    [
+      "蒸馏",
+      "Distillation",
+      "ai",
+      "大模型教小模型，保留部分能力。",
+      {
+        "aliases": [
+          "Distillation"
+        ]
+      }
+    ],
+    [
+      "A2A",
+      "Agent2Agent",
+      "ai",
+      "多个 AI Agent 互相通信的协议。",
+      {
+        "aliases": [
+          "Agent2Agent"
+        ]
+      }
+    ],
+    [
+      "Computer Use",
+      "Computer Use",
+      "ai",
+      "AI 直接操控鼠标键盘操作电脑。"
+    ],
+    [
+      "推理模型",
+      "Reasoning Model",
+      "ai",
+      "花更多思考步骤换更高正确率。",
+      {
+        "aliases": [
+          "Reasoning Model"
+        ]
+      }
+    ],
+    [
+      "上下文工程",
+      "Context Engineering",
+      "ai",
+      "设计喂给模型的信息与结构。",
+      {
+        "aliases": [
+          "Context Engineering"
+        ]
+      }
+    ],
+    [
+      "评测",
+      "Evals",
+      "ai",
+      "系统化测试 AI 输出质量。",
+      {
+        "aliases": [
+          "Evals"
+        ]
+      }
+    ],
+    [
+      "事实锚定",
+      "Grounding",
+      "ai",
+      "让回答基于可验证事实而非纯生成。",
+      {
+        "aliases": [
+          "Grounding"
+        ]
+      }
+    ],
+    [
+      "AI 工作流",
+      "AI Workflow",
+      "ai",
+      "多个 AI 步骤串联的自动化流程。",
+      {
+        "aliases": [
+          "AI Workflow"
+        ]
+      }
+    ],
+    [
+      "子 Agent",
+      "Sub-agent",
+      "ai",
+      "主 Agent 派生的专项小 Agent。",
+      {
+        "aliases": [
+          "Sub-agent"
+        ]
+      }
+    ],
+    [
+      "Watch",
+      "Watch",
+      "practice",
+      "订阅仓库动态通知。",
+      {
+        "aliases": [
+          "关注"
+        ]
+      }
+    ],
+    [
+      "GitHub Actions",
+      "GitHub Actions",
+      "practice",
+      "在 GitHub 上自动跑 CI/CD 流水线。"
+    ],
+    [
+      "Discussions",
+      "Discussions",
+      "practice",
+      "仓库内的论坛式讨论区。"
+    ],
+    [
+      "Gist",
+      "Gist",
+      "practice",
+      "GitHub 的代码片段分享。"
+    ],
+    [
+      "Markdown",
+      "Markdown",
+      "practice",
+      "轻量标记语言，README 常用。"
+    ],
+    [
+      "MDC 规则",
+      "MDC Rules",
+      "ai",
+      "Cursor 的规则文件格式 .mdc。",
+      {
+        "aliases": [
+          "MDC Rules"
+        ]
+      }
+    ],
+    [
+      "上下文",
+      "Context",
+      "ai",
+      "AI 当前能看到的代码与对话。",
+      {
+        "aliases": [
+          "Context"
+        ]
+      }
+    ],
+    [
+      "Diff",
+      "Diff",
+      "ai",
+      "修改前后的代码对比。"
+    ],
+    [
+      "行内编辑",
+      "Inline Edit",
+      "ai",
+      "在编辑器里直接让 AI 改选中代码。",
+      {
+        "aliases": [
+          "Inline Edit"
+        ]
+      }
+    ],
+    [
+      "后台 Agent",
+      "Background Agent",
+      "ai",
+      "在云端继续跑的 Agent 任务。",
+      {
+        "aliases": [
+          "Background Agent"
+        ]
+      }
+    ],
+    [
+      "负载均衡",
+      "Load Balancer",
+      "web",
+      "把流量分到多台服务器。",
+      {
+        "aliases": [
+          "Load Balancer"
+        ]
+      }
+    ],
+    [
+      "反向代理",
+      "Reverse Proxy",
+      "web",
+      "挡在服务器前统一接流量。",
+      {
+        "aliases": [
+          "Reverse Proxy"
+        ]
+      }
+    ],
+    [
+      "CORS",
+      "CORS",
+      "web",
+      "浏览器跨域访问安全策略。"
+    ],
+    [
+      "Bearer Token",
+      "Bearer Token",
+      "web",
+      "HTTP 头里带令牌的身份验证。"
+    ]
+  ]
+}

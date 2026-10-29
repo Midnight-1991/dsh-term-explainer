@@ -5,7 +5,7 @@ Adds a **Terms** action to finished DeepSeek Harness assistant answers: it detec
 为 DeepSeek Harness Web 界面增加「术语」入口：自动识别每条已完成回答中的计算机领域专有名词，一键弹出中文解释面板。
 
 - **纯前端**：只注册 UI 槽位，不改宿主 DOM，不挂第二个 React 根节点。
-- **离线词典**：内置 330 条术语（11 个分类），不调用模型、不发起网络请求、不产生 token 费用。
+- **离线词典**：内置 577 条术语（11 个分类，含来自 Kubernetes/CNCF 等上游词库的导入词条），不调用模型、不发起网络请求、不产生 token 费用。
 - **次级解释**：解释文本里的其他术语会自动变成可点击链接，点开继续查看下一层；支持多层钻取、逐级返回，并防止同一术语自我循环。
 - **检索与筛选**：面板顶部支持关键词搜索、按分类筛选、三种排序（提及最多 / 出现顺序 / 名称），并可直接只看收藏。
 - **收藏与导出**：可给术语打星、从设置页导入导出收藏（导入与现有收藏合并并提示新增条数）、面板底部一键复制 Markdown 或下载 CSV。
@@ -31,7 +31,7 @@ Adds a **Terms** action to finished DeepSeek Harness assistant answers: it detec
 「设置 → 术语」分区提供：
 
 - **查词**：输入术语、英文全称或释义关键词，即时查看词条解释；
-- **完整词典**：打开全部 330 条词条的浏览视图（同样支持搜索、筛选、排序与收藏）；
+- **完整词典**：打开全部 577 条词条的浏览视图（同样支持搜索、筛选、排序与收藏）；
 - **行为**：是否在操作条显示「术语 N」按钮、上下文片段数量（1–3 条）、面板默认排序；
 - **收藏**：导出 / 导入收藏 JSON、清空收藏；
 - **快捷键**：`Alt+D` 词典、`Alt+T` 最近回答、`Esc` 关闭/返回；在输入框、可编辑区域内不触发，宿主弹窗打开时让位。macOS 上为 `Option` 组合键；部分 Windows/Linux 浏览器把 `Alt+D`/`Alt+T` 用作保留键，此时请改用消息操作条或设置页入口。
@@ -64,7 +64,7 @@ dsh plugin --profile web add /path/to/dsh-term-explainer
 
 ## 词典
 
-内置 **330 条**计算机术语，分 11 类：编程语言与范式、前端与 Web、后端与架构、数据库与存储、网络与协议、云原生与 DevOps、安全与加密、AI 与大模型、系统与底层、工程实践、DeepSeek Harness。
+内置 **577 条**计算机术语（人工维护 330 条 + 外部导入 247 条），分 11 类：编程语言与范式、前端与 Web、后端与架构、数据库与存储、网络与协议、云原生与 DevOps、安全与加密、AI 与大模型、系统与底层、工程实践、DeepSeek Harness。
 
 扩展词条只需在 `client.js` 的 `GLOSSARY` 数组里加一行：
 
@@ -72,6 +72,12 @@ dsh plugin --profile web add /path/to/dsh-term-explainer
 // [规范名称, 英文全称, 分类, 中文解释, { aliases: ['别名'], cs: true }?]
 ['MCP', 'Model Context Protocol', 'ai', '模型上下文协议：让模型以标准方式调用外部工具与数据源。'],
 ```
+
+外部词条来源与许可证：Kubernetes website（CC-BY-4.0，162 条）、CNCF Glossary（Apache-2.0，63 条）、
+ai-heihua-zh（MIT，91 条），详见 [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) 与调研报告
+[`GLOSSARY-SOURCES.md`](./GLOSSARY-SOURCES.md)。生成物为 `data/external-glossary.json`，由
+`npm run glossary:sync` 从上游 sparse clone 重新生成、`npm run glossary:embed` 嵌入 `client.js`
+的 `EXTERNAL-GLOSSARY` 标记块（人工词条优先，规范化去重）。
 
 匹配规则：
 
@@ -86,7 +92,7 @@ dsh plugin --profile web add /path/to/dsh-term-explainer
 npm test        # node scripts/smoke.mjs
 ```
 
-冒烟测试在 Node `vm` 中加载真实的 `client.js`，用极小的 React / Cordis 替身驱动三个组件（操作条按钮、解释面板、设置分区），覆盖：locale 注册、三个槽位注册、词边界与大小写、英文复数、别名搜索、重叠长词、Markdown 上下文清理、`aria-labelledby`、释义内术语链接（含自我引用排除）、两层钻取与返回、`Esc` 逐级退栈、搜索/筛选/排序、收藏持久化与导入合并、Markdown/CSV 导出（BOM 与公式注入防护）、相关术语跳转、词典模式、设置页开关与快捷键守卫、会话作用域的最近回答、关闭逻辑、40 KB 文本性能。
+冒烟测试在 Node `vm` 中加载真实的 `client.js`，用极小的 React / Cordis 替身驱动三个组件（操作条按钮、解释面板、设置分区），覆盖：locale 注册、三个槽位注册、词边界与大小写、英文复数、别名搜索、重叠长词、Markdown 上下文清理、`aria-labelledby`、释义内术语链接（含自我引用排除）、两层钻取与返回、`Esc` 逐级退栈、搜索/筛选/排序、收藏持久化与导入合并、合并词典去重与外部词条扫描、Markdown/CSV 导出（BOM 与公式注入防护）、相关术语跳转、词典模式、设置页开关与快捷键守卫、会话作用域的最近回答、关闭逻辑、40 KB 文本性能。
 
 目录：
 
@@ -98,9 +104,15 @@ npm test        # node scripts/smoke.mjs
 | `client.js` | Client 半：词典 + 扫描器 + 消息入口 + 解释面板（自包含，无构建步骤） |
 | `PROMPT.md` | 驱动本实现的需求提示词（保留以便溯源） |
 | `scripts/smoke.mjs` | 离线冒烟测试 |
+| `scripts/sync-external-glossary.mjs` | 从上游词库生成 `data/external-glossary.json` |
+| `scripts/embed-external-glossary.mjs` | 将外部词条嵌入 `client.js` 标记块 |
+| `data/external-glossary.json` | 外部词条生成物（含来源、许可证、upstream commit） |
+| `THIRD_PARTY_NOTICES.md` | 外部词条来源与许可证声明 |
+| `GLOSSARY-SOURCES.md` | 术语库调研、候选评估与排除原因 |
 
 ## 更新日志
 
+- **1.3.0**：词典从 330 条扩充到 577 条——接入 Kubernetes website（CC-BY-4.0）、CNCF Glossary（Apache-2.0）与 ai-heihua-zh（MIT）三个宽松许可词库，新增可复现的 `glossary:sync` / `glossary:embed` 脚本、来源许可证声明与调研报告；人工词条优先、规范化去重，英语全称与缩写进入别名。
 - **1.2.1**：修复独立审查发现的问题：别名搜索（`k8s` / `OOP` / `E2E`）、英文复数识别、跨 Markdown 边界的上下文片段残留、导入收藏改为合并并提示、CSV 加 UTF-8 BOM 与公式注入防护、Markdown 全单元格转义、快捷键在输入框/宿主弹窗内不再触发、最近回答按会话隔离、分类计数随筛选更新、设置页词典展示完整 330 条、发布包包含测试与提示词文件。
 - **1.2.0**：面板搜索 / 分类筛选 / 排序、收藏与 Markdown·CSV 导出、相关术语推荐、完整词典入口、设置页与 `Alt+D` / `Alt+T` 快捷键。
 - **1.1.0**：解释文本中的术语可点击，支持多层次级解释与逐级返回。
@@ -112,4 +124,5 @@ npm test        # node scripts/smoke.mjs
 
 ## License
 
-MIT
+代码与人工词条以 MIT 发布（`LICENSE`）；外部导入词条保留各自许可证，见
+[`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md)。
