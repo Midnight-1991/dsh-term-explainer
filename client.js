@@ -500,6 +500,19 @@
             persist();
             emit();
           },
+          /** Union the given terms into the bookmarks; returns how many were new. */
+          merge(list) {
+            const before = terms.size;
+            for (const term of Array.isArray(list) ? list : []) {
+              if (typeof term === 'string' && TERM_INDEX.has(term)) terms.add(term);
+            }
+            const added = terms.size - before;
+            if (added > 0) {
+              persist();
+              emit();
+            }
+            return added;
+          },
           clear() {
             if (terms.size === 0) return;
             terms = new Set();
@@ -865,11 +878,14 @@
         if (!query) return true;
         const needle = String(query).trim().toLowerCase();
         if (!needle) return true;
-        return (
-          String(item.term).toLowerCase().includes(needle) ||
-          String(item.full || '').toLowerCase().includes(needle) ||
-          String(item.explanation || '').toLowerCase().includes(needle)
-        );
+        const text = (value) => String(value == null ? '' : value).toLowerCase();
+        if (text(item.term).includes(needle) || text(item.full).includes(needle) || text(item.explanation).includes(needle)) {
+          return true;
+        }
+        // Scan results carry no aliases, so fall back to the dictionary entry.
+        const fallback = TERM_INDEX.get(item.term);
+        const aliases = Array.isArray(item.aliases) ? item.aliases : (fallback && fallback.aliases) || [];
+        return aliases.some((alias) => text(alias).includes(needle));
       }
 
       function filterTerms(items, filters) {
@@ -901,8 +917,10 @@
       }
 
       function csvCell(value) {
-        const text = value == null ? '' : String(value);
-        return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+        let text = value == null ? '' : String(value);
+        // Spreadsheet apps treat these as formulas; a leading quote keeps the text literal.
+        if (/^[=+\-@\t]/.test(text)) text = "'" + text;
+        return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
       }
 
       function snippetLine(item) {
@@ -916,8 +934,10 @@
       function exportMarkdown(items) {
         const rows = ['| 术语 | 英文全称 | 分类 | 提及次数 | 释义 |', '| --- | --- | --- | --- | --- |'];
         for (const item of items) {
-          const description = String(item.explanation || '').replace(/\|/g, '\\|');
-          rows.push('| ' + [item.term, item.full || '', item.category || '', item.count || 0, description].join(' | ') + ' |');
+          const cells = [item.term, item.full || '', item.category || '', item.count || 0, item.explanation || ''].map((value) =>
+            String(value == null ? '' : value).replace(/\|/g, '\\|'),
+          );
+          rows.push('| ' + cells.join(' | ') + ' |');
         }
         return rows.join('\n');
       }
@@ -931,7 +951,7 @@
               .join(','),
           );
         }
-        return rows.join('\r\n');
+        return '\uFEFF' + rows.join('\r\n');
       }
 
       function copyText(text) {
@@ -1022,7 +1042,10 @@
 
       function boundaryOk(text, start, end, alias) {
         if (alias.latinStart && start > 0 && WORD_CHAR.test(text.charAt(start - 1))) return false;
-        if (alias.latinEnd && end < text.length && WORD_CHAR.test(text.charAt(end))) return false;
+        if (alias.latinEnd && end < text.length && WORD_CHAR.test(text.charAt(end))) {
+          // Common English plurals (APIs, tokens, containers) still name the term.
+          if (!/^(?:es|s)(?![A-Za-z0-9_])/.test(text.slice(end))) return false;
+        }
         return true;
       }
 
@@ -1182,7 +1205,7 @@
         'panel.dictionary': '内置计算机术语词典 · {count} 条 · 离线释义',
         'panel.languageNote': '释义以中文提供',
         'panel.escHint': '关闭',
-        'panel.overlayLabel': '计算机术语解释面板',
+        'panel.downloadFailed': '下载失败，请检查浏览器权限',
         'panel.empty': '这条回答中没有识别到已收录的计算机术语。',
         'panel.back': '返回',
         'panel.escBack': '返回上一级',
@@ -1198,13 +1221,11 @@
         'cat.ai': 'AI 与大模型',
         'cat.system': '系统与底层',
         'panel.search': '搜索术语…',
-        'panel.clearSearch': '清除搜索',
         'panel.sort': '排序',
         'panel.sortMentions': '提及最多',
         'panel.sortOrder': '出现顺序',
         'panel.sortAlpha': '名称',
         'panel.filterAll': '全部',
-        'panel.favorites': '我的收藏',
         'panel.favoritesOnly': '只看收藏',
         'panel.favorite': '收藏此术语',
         'panel.unfavorite': '取消收藏',
@@ -1225,6 +1246,7 @@
         'settings.shortcutDict': '打开术语词典',
         'settings.shortcutPanel': '打开最近一条回答的术语面板',
         'settings.shortcutClose': '关闭面板 / 返回上一级',
+        'settings.shortcutDialogHint': '设置弹窗内请使用上方的「打开术语词典」按钮。',
         'settings.behavior': '行为',
         'settings.showAction': '在已完成回答的操作条显示「术语 N」按钮',
         'settings.contextLimit': '上下文片段数量',
@@ -1241,6 +1263,7 @@
         'settings.clearFavorites': '清空收藏',
         'settings.clearConfirm': '确定清空全部收藏？',
         'settings.importFailed': '导入失败：文件格式不正确。',
+        'settings.importMerged': '已合并导入 {count} 条收藏',
         'settings.lookup': '查词',
         'settings.lookupPlaceholder': '输入术语、英文全称或释义关键词',
         'settings.lookupEmpty': '没有匹配的术语。',
@@ -1262,7 +1285,7 @@
         'panel.dictionary': 'Built-in dictionary · {count} terms · offline',
         'panel.languageNote': 'Explanations are in Chinese',
         'panel.escHint': 'to close',
-        'panel.overlayLabel': 'Computer term explanations',
+        'panel.downloadFailed': 'Download failed — check browser permissions',
         'panel.empty': 'No dictionary terms were detected in this answer.',
         'panel.back': 'Back',
         'panel.escBack': 'to go back',
@@ -1278,13 +1301,11 @@
         'cat.ai': 'AI & LLMs',
         'cat.system': 'Systems & internals',
         'panel.search': 'Search terms…',
-        'panel.clearSearch': 'Clear search',
         'panel.sort': 'Sort',
         'panel.sortMentions': 'Most mentioned',
         'panel.sortOrder': 'Answer order',
         'panel.sortAlpha': 'Name',
         'panel.filterAll': 'All',
-        'panel.favorites': 'Favorites',
         'panel.favoritesOnly': 'Favorites only',
         'panel.favorite': 'Save this term',
         'panel.unfavorite': 'Remove from favorites',
@@ -1305,6 +1326,7 @@
         'settings.shortcutDict': 'Open the term dictionary',
         'settings.shortcutPanel': 'Open the terms panel of the latest answer',
         'settings.shortcutClose': 'Close the panel / go back one level',
+        'settings.shortcutDialogHint': 'Inside the Settings sheet use the dictionary button above.',
         'settings.behavior': 'Behaviour',
         'settings.showAction': 'Show the “Terms N” button on finished answers',
         'settings.contextLimit': 'Context snippets',
@@ -1321,6 +1343,7 @@
         'settings.clearFavorites': 'Clear favorites',
         'settings.clearConfirm': 'Clear all saved terms?',
         'settings.importFailed': 'Import failed: invalid file.',
+        'settings.importMerged': 'Merged {count} favorite(s)',
         'settings.lookup': 'Lookup',
         'settings.lookupPlaceholder': 'Search a term, full name or explanation',
         'settings.lookupEmpty': 'No matching terms.',
@@ -1576,14 +1599,32 @@
       }
 
       function Snippet({ snippet }) {
+        // Clean the concatenated window first: inline markers such as **term** span
+        // the before/hit/after slices and would otherwise leak as literal characters.
+        const raw = (snippet.prefix || '') + snippet.before + snippet.hit + snippet.after + (snippet.suffix || '');
+        const cleaned = cleanInline(raw);
+        const hitText = cleanInline(snippet.hit) || snippet.hit;
+        const approx = cleanInline((snippet.prefix || '') + snippet.before).length;
+        let at = -1;
+        let best = Infinity;
+        let from = 0;
+        while (hitText) {
+          const index = cleaned.indexOf(hitText, from);
+          if (index === -1) break;
+          const distance = Math.abs(index - approx);
+          if (distance < best) {
+            best = distance;
+            at = index;
+          }
+          from = index + 1;
+        }
+        if (at < 0) return h('li', { className: 'tg-snippet' }, cleaned);
         return h(
           'li',
           { className: 'tg-snippet' },
-          snippet.prefix,
-          cleanInline(snippet.before),
-          h('mark', null, cleanInline(snippet.hit)),
-          cleanInline(snippet.after),
-          snippet.suffix,
+          cleaned.slice(0, at),
+          h('mark', null, cleaned.slice(at, at + hitText.length)),
+          cleaned.slice(at + hitText.length),
         );
       }
 
@@ -1644,6 +1685,18 @@
 
       // The most recently rendered answer (used by the Alt+T shortcut and the settings panel).
       let latestScan = null;
+      let activeSessionId = null;
+
+      function rememberScan(payload) {
+        latestScan = payload;
+      }
+
+      /** Latest scan only when it came from the session that is currently on screen. */
+      function currentLatestScan() {
+        if (!latestScan) return null;
+        if (activeSessionId && latestScan.sessionId && latestScan.sessionId !== activeSessionId) return null;
+        return latestScan;
+      }
 
       function TermCard({ item, t, onSelect, favorites, contextLimit }) {
         const [expanded, setExpanded] = React.useState(false);
@@ -1727,8 +1780,12 @@
         onlyFavorites,
         onToggleFavorites,
         favoritesCount,
+        favorites,
       }) {
-        const counts = categoryCounts(baseItems);
+        // Counts respect the other active filters so a chip never promises an empty list.
+        const filteredItems = filterTerms(baseItems, { query, onlyFavorites, favorites });
+        const counts = categoryCounts(filteredItems);
+        const filteredTotal = filteredItems.length;
         const chips = CATEGORY_ORDER.filter((key) => counts[key]).map((key) =>
           h(
             'button',
@@ -1792,7 +1849,7 @@
                 'data-active': category ? 'false' : 'true',
                 onClick: () => onCategoryChange(null),
               },
-              t('panel.filterAll') + ' ' + baseItems.length,
+              t('panel.filterAll') + ' ' + filteredTotal,
             ),
             chips,
           ),
@@ -1860,8 +1917,7 @@
             setCopied('');
             setSort(SORT_MODES.includes(config.defaultSort) ? config.defaultSort : 'mentions');
             pendingFocusRef.current = null;
-            if (payload && payload.seed && TERM_INDEX.has(payload.seed)) setStack([TERM_INDEX.get(payload.seed)]);
-            else setStack([]);
+            setStack([]);
           }, [open, payload, settings]);
 
           React.useEffect(
@@ -1895,20 +1951,18 @@
 
           const pushTerm = React.useCallback((entry) => {
             if (!entry || !entry.term) return;
+            const previous = stackRef.current;
+            const index = previous.findIndex((item) => item.term === entry.term);
+            const next = index >= 0 ? previous.slice(0, index + 1) : previous.concat([entry]);
             pendingFocusRef.current = entry.term;
-            setStack((previous) => {
-              const index = previous.findIndex((item) => item.term === entry.term);
-              if (index >= 0) return previous.slice(0, index + 1);
-              return previous.concat([entry]);
-            });
+            setStack(next);
           }, []);
 
           const popTerm = React.useCallback(() => {
-            setStack((previous) => {
-              if (previous.length === 0) return previous;
-              pendingFocusRef.current = previous[previous.length - 1].term;
-              return previous.slice(0, -1);
-            });
+            const previous = stackRef.current;
+            if (previous.length === 0) return;
+            pendingFocusRef.current = previous[previous.length - 1].term;
+            setStack(previous.slice(0, -1));
           }, []);
 
           // Focus follows the view: the back button when diving in, the clicked term when coming out.
@@ -1966,12 +2020,16 @@
               }
             };
             document.addEventListener('keydown', onKeyDown, true);
+            const body = typeof document !== 'undefined' && document.body && document.body.style ? document.body : null;
+            const previousOverflow = body ? body.style.overflow : '';
+            if (body) body.style.overflow = 'hidden';
             const timer = setTimeout(() => {
               if (closeRef.current && stackRef.current.length === 0) closeRef.current.focus();
             }, 0);
             return () => {
               document.removeEventListener('keydown', onKeyDown, true);
               clearTimeout(timer);
+              if (body) body.style.overflow = previousOverflow;
               if (previous && typeof previous.focus === 'function') {
                 try {
                   previous.focus();
@@ -1982,23 +2040,28 @@
             };
           }, [open, close, popTerm]);
 
+          // Projecting the dictionary is only needed while the panel is open, but hooks
+          // must run unconditionally, so memoise before the early return.
+          const dictionaryItems = React.useMemo(
+            () =>
+              TERMS.map((entry) => ({
+                term: entry.term,
+                full: entry.full,
+                category: entry.category,
+                explanation: entry.explanation,
+                count: 0,
+                snippets: [],
+              })),
+            [],
+          );
+
           if (!open || !payload) return null;
 
           const config = settings.get();
           const contextLimit = config.contextLimit;
           const scan = payload.scan;
           const scanItems = scan && Array.isArray(scan.unique) ? scan.unique : [];
-          const baseItems =
-            mode === 'dictionary'
-              ? TERMS.map((entry) => ({
-                  term: entry.term,
-                  full: entry.full,
-                  category: entry.category,
-                  explanation: entry.explanation,
-                  count: 0,
-                  snippets: [],
-                }))
-              : scanItems;
+          const baseItems = mode === 'dictionary' ? dictionaryItems : scanItems;
           const items = sortTerms(filterTerms(baseItems, { query, category, onlyFavorites, favorites }), sort);
           const favoritesCount = favorites.count();
           const detail = stack.length > 0 ? stack[stack.length - 1] : null;
@@ -2026,7 +2089,8 @@
             copyText(exportMarkdown(items)).then((okay) => flashCopied(okay ? t('panel.copied') : t('panel.copyFailed')));
           };
           const downloadCsv = () => {
-            downloadText('dsh-term-explainer.csv', exportCsv(items), 'text/csv;charset=utf-8');
+            const okay = downloadText('dsh-term-explainer.csv', exportCsv(items), 'text/csv;charset=utf-8');
+            if (!okay) flashCopied(t('panel.downloadFailed'));
           };
 
           const footerLeft =
@@ -2038,7 +2102,7 @@
             'div',
             {
               className: 'tg-backdrop',
-              role: 'presentation',
+              role: 'none',
               onMouseDown: (event) => {
                 if (event.target === event.currentTarget) close();
               },
@@ -2121,11 +2185,16 @@
                         onlyFavorites,
                         onToggleFavorites: () => setOnlyFavorites((value) => !value),
                         favoritesCount,
+                        favorites,
                       }),
                       baseItems.length === 0
                         ? h('p', { className: 'tg-empty' }, t('panel.empty'))
                         : items.length === 0
-                          ? h('div', { className: 'tg-empty-state' }, t('panel.noMatch'))
+                          ? h(
+                              'div',
+                              { className: 'tg-empty-state' },
+                              onlyFavorites && favoritesCount === 0 ? t('panel.favoritesEmpty') : t('panel.noMatch'),
+                            )
                           : items.map((item) =>
                               h(TermCard, {
                                 key: item.term,
@@ -2170,15 +2239,19 @@
         };
       }
 
+      function useNoopSelector() {
+        return undefined;
+      }
+
       function createTermAction(store, settings) {
         return function TermAction(props) {
           const t = translate(props);
           const messageId = props && props.messageId;
+          const sessionId = props && props.sessionId;
           const useChat = props && props.useChat;
+          const useChatHook = typeof useChat === 'function' ? useChat : useNoopSelector;
 
-          if (typeof useChat !== 'function') return null;
-
-          const node = useChat((chat) => {
+          const node = useChatHook((chat) => {
             const nodes = chat && chat.legacy && chat.legacy.nodes;
             if (!nodes) return undefined;
             for (let index = 0; index < nodes.length; index += 1) {
@@ -2212,8 +2285,13 @@
           const showAction = settings.get().showAction;
 
           React.useEffect(() => {
-            if (scan && scan.unique.length > 0) latestScan = { messageId, text, scan };
-          }, [messageId, text, scan]);
+            if (scan && scan.unique.length > 0) {
+              // The slot only renders for the visible conversation, so it also tells us
+              // which session Alt+T should target.
+              if (sessionId) activeSessionId = sessionId;
+              rememberScan({ sessionId, messageId, text, scan });
+            }
+          }, [sessionId, messageId, text, scan]);
 
           const openPanel = React.useCallback(() => {
             if (!scan) return;
@@ -2238,7 +2316,7 @@
         };
       }
 
-      function createSettingsSection({ store, favorites, settings }) {
+      function createSettingsSection({ favorites, settings }) {
         return function SettingsSection(props) {
           const t = translate(props);
           useStoreVersion(favorites);
@@ -2247,38 +2325,56 @@
           const [lookupQuery, setLookupQuery] = React.useState('');
           const [dictOpen, setDictOpen] = React.useState(false);
           const [importError, setImportError] = React.useState(false);
+          const [importNotice, setImportNotice] = React.useState('');
           const fileRef = React.useRef(null);
           const favoritesCount = favorites.count();
-          const latest = latestScan;
+          const latest = currentLatestScan();
           const lookupMatches = filterTerms(TERMS, { query: lookupQuery });
-          const lookup = lookupMatches.slice(0, dictOpen ? 120 : 8);
+          const lookup = lookupMatches.slice(0, dictOpen ? lookupMatches.length : 8);
 
           const exportFavorites = () => {
             downloadText(
               'dsh-term-explainer-favorites.json',
-              JSON.stringify(favorites.list(), null, 2),
+              JSON.stringify({ version: 1, terms: favorites.list() }, null, 2),
               'application/json;charset=utf-8',
             );
           };
 
           const importFavorites = (event) => {
-            const file = event && event.target && event.target.files && event.target.files[0];
-            if (!file || typeof FileReader !== 'function') return;
+            const target = event && event.target;
+            const file = target && target.files && target.files[0];
+            const resetInput = () => {
+              // Allow re-importing the same file twice.
+              if (target) target.value = '';
+            };
+            if (!file || typeof FileReader !== 'function') {
+              resetInput();
+              return;
+            }
             try {
               setImportError(false);
+              setImportNotice('');
               const reader = new FileReader();
               reader.onload = () => {
+                resetInput();
                 try {
                   const parsed = JSON.parse(String(reader.result == null ? '' : reader.result));
-                  if (!Array.isArray(parsed)) throw new Error('invalid');
-                  favorites.replace(parsed);
+                  const terms = Array.isArray(parsed) ? parsed : parsed && Array.isArray(parsed.terms) ? parsed.terms : null;
+                  if (!terms) throw new Error('invalid');
+                  // Merge instead of replace so importing an old backup never drops recent bookmarks.
+                  const added = favorites.merge(terms);
+                  setImportNotice(t('settings.importMerged', { count: added }));
                 } catch (error) {
                   setImportError(true);
                 }
               };
-              reader.onerror = () => setImportError(true);
+              reader.onerror = () => {
+                resetInput();
+                setImportError(true);
+              };
               reader.readAsText(file);
             } catch (error) {
+              resetInput();
               setImportError(true);
             }
           };
@@ -2442,6 +2538,7 @@
                 }),
               ),
               importError ? h('p', { className: 'tg-set-hint' }, t('settings.importFailed')) : null,
+              importNotice ? h('p', { className: 'tg-set-hint' }, importNotice) : null,
             ),
             h(
               'div',
@@ -2454,6 +2551,7 @@
                 h('span', null, h('kbd', null, 'Alt+T'), ' ', t('settings.shortcutPanel')),
                 h('span', null, h('kbd', null, 'Esc'), ' ', t('settings.shortcutClose')),
               ),
+              h('p', { className: 'tg-set-hint' }, t('settings.shortcutDialogHint')),
             ),
           );
         };
@@ -2484,11 +2582,32 @@
           CATEGORY_ORDER,
           DEFAULT_SETTINGS,
           STORAGE_KEYS,
-          rememberScan: (payload) => {
-            latestScan = payload;
+          rememberScan,
+          setActiveSession: (sessionId) => {
+            activeSessionId = sessionId;
           },
-          getLatestScan: () => latestScan,
+          getLatestScan: () => currentLatestScan(),
         };
+      }
+
+      function isEditableTarget(target) {
+        if (!target || target.nodeType === 3) return false;
+        if (target.isContentEditable === true) return true;
+        const tag = target.tagName ? String(target.tagName) : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+        return Boolean(target.closest && target.closest('[contenteditable=""],[contenteditable="true"],input,textarea,select'));
+      }
+
+      /** True when a host modal (e.g. the settings sheet) would cover our overlay layer. */
+      function hostDialogOpen() {
+        if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return false;
+        const nodes = document.querySelectorAll('[aria-modal="true"],[role="dialog"]');
+        for (let index = 0; index < nodes.length; index += 1) {
+          const node = nodes[index];
+          if (node && node.closest && node.closest('.tg-backdrop')) continue;
+          return true;
+        }
+        return false;
       }
 
       return {
@@ -2515,7 +2634,11 @@
             if (typeof document === 'undefined') return undefined;
             const onKeyDown = (event) => {
               if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-              if (event.isComposing === true) return;
+              if (event.isComposing === true || event.defaultPrevented === true) return;
+              if (isEditableTarget(event.target)) return;
+              // Our overlay lives inside the host overlay layer, so a host modal such as
+              // Settings would hide it; do not open an invisible dialog underneath.
+              if (hostDialogOpen()) return;
               const key = typeof event.key === 'string' ? event.key.toLowerCase() : '';
               const code = typeof event.code === 'string' ? event.code : '';
               // macOS renders Option+D / Option+T as "∂" / "†", so fall back to the physical code.
@@ -2524,9 +2647,10 @@
                 store.open({ mode: 'dictionary' });
                 return;
               }
-              if ((key === 't' || code === 'KeyT') && latestScan) {
+              const latest = currentLatestScan();
+              if ((key === 't' || code === 'KeyT') && latest) {
                 event.preventDefault();
-                store.open({ mode: 'scan', messageId: latestScan.messageId, text: latestScan.text, scan: latestScan.scan });
+                store.open({ mode: 'scan', messageId: latest.messageId, text: latest.text, scan: latest.scan });
               }
             };
             document.addEventListener('keydown', onKeyDown, true);
@@ -2566,7 +2690,7 @@
                 locale: NS,
                 label: () => boundT('settings.nav'),
               },
-              createSettingsSection({ store, favorites, settings }),
+              createSettingsSection({ favorites, settings }),
             ),
           );
         },

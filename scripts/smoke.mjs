@@ -339,7 +339,7 @@ button.props.onClick();
 
 const panelTree = render(h(Panel, { t }));
 assert.equal(panelTree.length, 1, 'panel should render while open');
-assert.equal(panelTree[0].props.role, 'presentation');
+assert.equal(panelTree[0].props.role, 'none');
 const cards = findByClass(panelTree, 'tg-term');
 assert.ok(cards.length >= 25, 'expected a rich term list, got ' + cards.length);
 
@@ -500,9 +500,31 @@ const md = dev.exportMarkdown([{ term: 'API 网关', full: 'API Gateway', catego
 assert.ok(md.startsWith('| 术语 | 英文全称 | 分类 | 提及次数 | 释义 |'), 'markdown export has a header');
 assert.ok(md.includes('| API 网关 | API Gateway | server | 2 | 入口网关。 |'), 'markdown export keeps a row');
 const csv = dev.exportCsv([{ term: 'A"B', full: '', category: 'lang', explanation: '含,逗号', count: 1, snippets: [] }]);
-assert.equal(csv.split('\r\n')[0], 'term,explanation,context,full_name,category,mentions');
+assert.equal(csv.charCodeAt(0), 0xfeff, 'csv starts with a UTF-8 BOM for Excel');
+assert.equal(csv.slice(1).split('\r\n')[0], 'term,explanation,context,full_name,category,mentions');
 assert.ok(csv.includes('"A""B"'), 'csv escapes quotes');
 assert.ok(csv.includes('"含,逗号"'), 'csv quotes comma values');
+const riskyCsv = dev.exportCsv([
+  { term: '=1+1', full: '', category: 'lang', explanation: '@cmd', count: 1, snippets: [] },
+  { term: 'CR\rhere', full: '', category: 'lang', explanation: 'x', count: 1, snippets: [] },
+]);
+assert.ok(riskyCsv.includes("'=1+1"), 'csv neutralises formula injection');
+assert.ok(riskyCsv.includes("'@cmd"), 'csv neutralises @ formulas');
+assert.ok(riskyCsv.includes('"CR\rhere"'), 'csv quotes carriage returns');
+const pipedMd = dev.exportMarkdown([
+  { term: 'A|B', full: 'a|b', category: 'lang', explanation: 'x|y', count: 1, snippets: [] },
+]);
+assert.ok(pipedMd.includes('A\\|B') && pipedMd.includes('a\\|b'), 'markdown escapes pipes in every cell');
+
+/* --- alias search and English plurals --------------------------------- */
+assert.equal(dev.matchesQuery(dev.findEntry('面向对象编程'), 'OOP'), true, 'search matches the OOP alias');
+assert.equal(dev.matchesQuery({ term: 'Kubernetes' }, 'k8s'), true, 'scan items without aliases fall back to the dictionary');
+assert.ok(dev.filterTerms([dev.findEntry('Kubernetes')], { query: 'k8s', category: null, onlyFavorites: false, favorites: null }).length === 1);
+const pluralScan = dev.scanText('Multiple APIs, Tokens and Hooks are listed here.');
+const pluralNames = pluralScan.unique.map((item) => item.term);
+assert.ok(pluralNames.includes('API'), 'plural APIs matches API');
+assert.ok(pluralNames.includes('Token'), 'plural Tokens matches Token');
+assert.ok(pluralNames.includes('钩子'), 'plural Hooks matches the Hook alias');
 
 /* --- favorites store persistence -------------------------------------- */
 const favoritesStore = dev.createFavoritesStore();
@@ -544,13 +566,45 @@ assert.ok(openDictButton, 'settings page offers a dictionary toggle');
 assert.equal(findByClass(settingsView, 'tg-set-item').length, 8, 'lookup shows a short preview list');
 openDictButton.props.onClick();
 settingsView = render(h(Settings, { t }));
-assert.ok(findByClass(settingsView, 'tg-set-item').length > 8, 'dictionary toggle expands the list');
+assert.equal(findByClass(settingsView, 'tg-set-item').length, 330, 'dictionary toggle expands to the full dictionary');
 assert.ok(flattenText(settingsView).includes('settings.dictHint'), 'dictionary hint reports the match count');
+assert.ok(flattenText(settingsView).includes('settings.shortcutDialogHint'), 'settings explains why Alt+D is ignored inside the sheet');
 const closeDictButton = findByTag(settingsView, 'button').find((button) => flattenText([button]) === 'settings.closeDict');
 assert.ok(closeDictButton, 'dictionary toggle can be collapsed');
 closeDictButton.props.onClick();
 settingsView = render(h(Settings, { t }));
 assert.equal(findByClass(settingsView, 'tg-set-item').length, 8, 'dictionary collapses back to the preview');
+
+/* --- favorites import merges and resets the file input ----------------- */
+sandbox.FileReader = class FakeFileReader {
+  readAsText(file) {
+    this.result = file.text;
+    if (typeof this.onload === 'function') this.onload();
+  }
+};
+let importView = render(h(Settings, { t }));
+const clearButton = findByTag(importView, 'button').find((button) => flattenText([button]) === 'settings.clearFavorites');
+assert.ok(clearButton, 'settings page offers a clear-favorites button');
+clearButton.props.onClick();
+importView = render(h(Settings, { t }));
+const fileInput = findByTag(importView, 'input').find((input) => input.props.type === 'file');
+assert.ok(fileInput, 'settings page has a hidden file input');
+const importTarget = {
+  value: 'chosen',
+  files: [{ name: 'favorites.json', text: JSON.stringify({ version: 1, terms: ['缓存穿透', '不存在的术语'] }) }],
+};
+fileInput.props.onChange({ target: importTarget });
+importView = render(h(Settings, { t }));
+assert.ok(flattenText(importView).includes('settings.importMerged'), 'import reports how many favorites were merged');
+assert.equal(importTarget.value, '', 'file input resets so the same file can be re-imported');
+const importedStored = sandbox.window.localStorage.getItem(dev.STORAGE_KEYS.favorites);
+assert.ok(importedStored.includes('缓存穿透'), 'import merges favorites instead of replacing them');
+assert.ok(!importedStored.includes('不存在的术语'), 'unknown terms are dropped');
+const clearAgain = findByTag(importView, 'button').find((button) => flattenText([button]) === 'settings.clearFavorites');
+clearAgain.props.onClick();
+importView = render(h(Settings, { t }));
+assert.ok(!String(sandbox.window.localStorage.getItem(dev.STORAGE_KEYS.favorites) || '').includes('缓存穿透'), 'imported favorites can be cleared again');
+delete sandbox.FileReader;
 
 /* --- dictionary mode through the global shortcut ----------------------- */
 const dispatchKey = (event) => {
@@ -578,12 +632,46 @@ assert.equal(flattenText(findByClass(optionLatest, 'tg-title')), '计算机术�
 dispatchKey({ key: 'Escape' });
 assert.equal(render(h(Panel, { t })).length, 0);
 
+/* --- shortcuts stay out of editable fields and host modals ------------- */
+dispatchKey({ key: 'd', altKey: true, target: { tagName: 'TEXTAREA', isContentEditable: false } });
+assert.equal(render(h(Panel, { t })).length, 0, 'shortcut ignored inside a textarea');
+dispatchKey({ key: 'd', altKey: true, target: { tagName: 'INPUT', isContentEditable: false } });
+assert.equal(render(h(Panel, { t })).length, 0, 'shortcut ignored inside an input');
+sandbox.document.querySelectorAll = () => [{ closest: () => null }];
+dispatchKey({ key: 'd', altKey: true });
+assert.equal(render(h(Panel, { t })).length, 0, 'shortcut ignored while a host modal is open');
+delete sandbox.document.querySelectorAll;
+dispatchKey({ key: 'd', altKey: true });
+assert.ok(findByClass(render(h(Panel, { t })), 'tg-toolbar').length === 1, 'shortcut works again after the modal closes');
+dispatchKey({ key: 'Escape' });
+assert.equal(render(h(Panel, { t })).length, 0);
+
 /* --- Alt+T reopens the latest answer ---------------------------------- */
 dispatchKey({ key: 't', altKey: true });
 const latestTree = render(h(Panel, { t }));
 assert.equal(flattenText(findByClass(latestTree, 'tg-title')), '计算机术语解释', 'Alt+T opens the latest answer terms');
 assert.ok(findByClass(latestTree, 'tg-term').length >= 25);
 dispatchKey({ key: 'Escape' });
+
+/* --- context snippets clean markdown that wraps the hit ---------------- */
+const markdownNode = {
+  kind: 'assistant',
+  messageId: 'msg-md',
+  blocks: [{ kind: 'text', text: '结论：**缓存穿透** 用布隆过滤器兜底，`cache.get` 也要注意。' }],
+};
+const markdownChat = { legacy: { nodes: [markdownNode] } };
+const markdownAction = render(h(Action, { messageId: 'msg-md', useChat: (selector) => selector(markdownChat), t }))[0];
+assert.ok(markdownAction, 'markdown answer still shows the terms action');
+markdownAction.props.onClick();
+let markdownPanel = render(h(Panel, { t }));
+findByClass(markdownPanel, 'tg-toggle')[0].props.onClick();
+markdownPanel = render(h(Panel, { t }));
+const snippetText = flattenText(findByClass(markdownPanel, 'tg-snippet'));
+assert.ok(snippetText.includes('缓存穿透'), 'snippet keeps the term');
+assert.ok(!snippetText.includes('**'), 'snippet does not leak markdown bold markers');
+assert.ok(!snippetText.includes('`'), 'snippet does not leak inline code markers');
+dispatchKey({ key: 'Escape' });
+assert.equal(render(h(Panel, { t })).length, 0);
 
 /* --- toolbar: search / sort / favorites / category filter -------------- */
 button.props.onClick();
@@ -596,6 +684,7 @@ const listCount = findByClass(tree, 'tg-term').length;
 findByClass(tree, 'tg-search')[0].props.onChange({ target: { value: 'gRPC' } });
 tree = render(h(Panel, { t }));
 assert.equal(findByClass(tree, 'tg-term').length, 1, 'search narrows the visible terms');
+assert.equal(flattenText([findByClass(tree, 'tg-cat')[0]]), 'panel.filterAll 1', 'category counts follow the active search');
 assert.ok(flattenText(tree).includes('gRPC'));
 findByClass(tree, 'tg-search')[0].props.onChange({ target: { value: '' } });
 tree = render(h(Panel, { t }));
@@ -640,6 +729,15 @@ starred.props.onClick();
 tree = render(h(Panel, { t }));
 assert.ok(!sandbox.window.localStorage.getItem(dev.STORAGE_KEYS.favorites).includes(firstCardName), 'unstarring removes the favorite');
 
+/* --- empty favorites state uses the dedicated copy --------------------- */
+findByClass(tree, 'tg-filter')[0].props.onClick();
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-term').length, 0, 'no term is starred anymore');
+assert.ok(flattenText(tree).includes('panel.favoritesEmpty'), 'empty favorites state has its own copy');
+assert.ok(!flattenText(tree).includes('panel.noMatch'), 'empty favorites state does not suggest another keyword');
+findByClass(tree, 'tg-filter')[0].props.onClick();
+tree = render(h(Panel, { t }));
+
 /* --- related terms navigate from a drill-down ------------------------- */
 const relatedSeed = findByClass(tree, 'tg-inline-term').find((link) => {
   const entry = dev.findEntry(link.props['data-term']);
@@ -670,6 +768,14 @@ render(h(Panel, { t }));
 /* --- Esc still closes the list view ----------------------------------- */
 pressEscape();
 assert.equal(render(h(Panel, { t })).length, 0, 'Esc closes the panel from the list');
+
+/* --- latest scan is scoped to the session that produced it ------------- */
+render(h(Action, { ...actionProps, sessionId: 'session-a' }));
+assert.ok(dev.getLatestScan() && dev.getLatestScan().sessionId === 'session-a', 'latest scan records its session');
+dev.rememberScan({ sessionId: 'session-b', messageId: 'msg-b', text: 'x', scan: { unique: [], total: 0 } });
+assert.equal(dev.getLatestScan(), null, 'latest scan from another session is not reused');
+dev.rememberScan({ sessionId: 'session-a', messageId: 'msg-1', text: SAMPLE, scan: dev.scanText(SAMPLE) });
+assert.ok(dev.getLatestScan(), 'latest scan is available again inside its own session');
 
 /* Long text throughput: 200 KB / ~340 dictionary terms. */
 const big = SAMPLE.repeat(120);

@@ -1,6 +1,6 @@
 {
   "name": "dsh-term-explainer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "description": "Explain computer terms that appear in DeepSeek Harness assistant answers: offline dictionary, per-message entry, searchable dictionary, favorites and exports, no model calls.",
   "keywords": [
@@ -25,7 +25,9 @@
     "index.js",
     "cordis.patch.yml",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "PROMPT.md",
+    "scripts/smoke.mjs"
   ],
   "scripts": {
     "test": "node scripts/smoke.mjs"
