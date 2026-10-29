@@ -34,7 +34,7 @@ Adds a **Terms** action to finished DeepSeek Harness assistant answers: it detec
 - **完整词典**：打开全部 330 条词条的浏览视图（同样支持搜索、筛选、排序与收藏）；
 - **行为**：是否在操作条显示「术语 N」按钮、上下文片段数量（1–3 条）、面板默认排序；
 - **收藏**：导出 / 导入收藏 JSON、清空收藏；
-- **快捷键**：`Alt+D` 词典、`Alt+T` 最近回答、`Esc` 关闭/返回；在输入框、可编辑区域内不触发，宿主弹窗打开时让位；macOS 上为 `Option` 组合键。
+- **快捷键**：`Alt+D` 词典、`Alt+T` 最近回答、`Esc` 关闭/返回；在输入框、可编辑区域内不触发，宿主弹窗打开时让位。macOS 上为 `Option` 组合键；部分 Windows/Linux 浏览器把 `Alt+D`/`Alt+T` 用作保留键，此时请改用消息操作条或设置页入口。
 
 收藏与设置只保存在当前浏览器的 `localStorage` 中，不会上传；清除浏览器站点数据会同时清除它们。
 
