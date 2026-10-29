@@ -1231,8 +1231,9 @@
         'settings.contextLimitUnit': '条',
         'settings.defaultSort': '面板默认排序',
         'settings.openDict': '打开术语词典',
-        'settings.openRecent': '打开最近回答',
-        'settings.openRecentEmpty': '暂无可打开的回答',
+        'settings.closeDict': '收起词典',
+        'settings.dictHint': '显示 {shown} / {total} 条匹配',
+        'settings.recentHint': '最近一条回答已就绪：按 Alt+T 可直接打开它的术语面板。',
         'settings.favoritesSection': '收藏与导出',
         'settings.favoritesCount': '已收藏 {count} 条',
         'settings.exportFavorites': '导出收藏（JSON）',
@@ -1310,8 +1311,9 @@
         'settings.contextLimitUnit': 'snippets',
         'settings.defaultSort': 'Default panel sorting',
         'settings.openDict': 'Open term dictionary',
-        'settings.openRecent': 'Open latest answer',
-        'settings.openRecentEmpty': 'No answer available yet',
+        'settings.closeDict': 'Close dictionary',
+        'settings.dictHint': 'Showing {shown} of {total} matches',
+        'settings.recentHint': 'The latest answer is ready: press Alt+T to open its term panel.',
         'settings.favoritesSection': 'Favorites & export',
         'settings.favoritesCount': '{count} saved',
         'settings.exportFavorites': 'Export favorites (JSON)',
@@ -2243,11 +2245,13 @@
           useStoreVersion(settings);
           const config = settings.get();
           const [lookupQuery, setLookupQuery] = React.useState('');
+          const [dictOpen, setDictOpen] = React.useState(false);
           const [importError, setImportError] = React.useState(false);
           const fileRef = React.useRef(null);
           const favoritesCount = favorites.count();
           const latest = latestScan;
-          const lookup = filterTerms(TERMS, { query: lookupQuery }).slice(0, 8);
+          const lookupMatches = filterTerms(TERMS, { query: lookupQuery });
+          const lookup = lookupMatches.slice(0, dictOpen ? 120 : 8);
 
           const exportFavorites = () => {
             downloadText(
@@ -2287,11 +2291,7 @@
             if (confirmed) favorites.clear();
           };
 
-          const openDictionary = () => store.open({ mode: 'dictionary' });
-          const openLatest = () => {
-            if (!latest) return;
-            store.open({ mode: 'scan', messageId: latest.messageId, text: latest.text, scan: latest.scan });
-          };
+          const toggleDictionary = () => setDictOpen((open) => !open);
 
           return h(
             'div',
@@ -2346,15 +2346,14 @@
                 { className: 'tg-set-actions' },
                 h(
                   'button',
-                  { type: 'button', className: 'tg-btn', 'data-kind': 'primary', onClick: openDictionary },
-                  t('settings.openDict'),
+                  { type: 'button', className: 'tg-btn', 'data-kind': dictOpen ? 'primary' : null, onClick: toggleDictionary },
+                  dictOpen ? t('settings.closeDict') : t('settings.openDict'),
                 ),
-                h(
-                  'button',
-                  { type: 'button', className: 'tg-btn', disabled: !latest, onClick: openLatest },
-                  latest ? t('settings.openRecent') : t('settings.openRecentEmpty'),
-                ),
+                h('span', { className: 'tg-set-hint' }, t('settings.dictHint', { shown: lookup.length, total: lookupMatches.length })),
               ),
+              dictOpen && latest
+                ? h('p', { className: 'tg-set-hint' }, t('settings.recentHint'))
+                : null,
             ),
             h(
               'div',
@@ -2516,18 +2515,16 @@
             if (typeof document === 'undefined') return undefined;
             const onKeyDown = (event) => {
               if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-              const target = event.target;
-              const tag = target && target.tagName ? String(target.tagName) : '';
-              if (target && (target.isContentEditable === true || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')) {
-                return;
-              }
+              if (event.isComposing === true) return;
               const key = typeof event.key === 'string' ? event.key.toLowerCase() : '';
-              if (key === 'd') {
+              const code = typeof event.code === 'string' ? event.code : '';
+              // macOS renders Option+D / Option+T as "∂" / "†", so fall back to the physical code.
+              if (key === 'd' || code === 'KeyD') {
                 event.preventDefault();
                 store.open({ mode: 'dictionary' });
                 return;
               }
-              if (key === 't' && latestScan) {
+              if ((key === 't' || code === 'KeyT') && latestScan) {
                 event.preventDefault();
                 store.open({ mode: 'scan', messageId: latestScan.messageId, text: latestScan.text, scan: latestScan.scan });
               }

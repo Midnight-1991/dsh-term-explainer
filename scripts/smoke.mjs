@@ -537,6 +537,21 @@ const restoreToggle = findByTag(render(h(Settings, { t })), 'input').find((input
 restoreToggle.props.onChange({ target: { checked: true } });
 assert.equal(render(h(Action, actionProps)).length, 1, 're-enabling showAction restores the action pill');
 
+/* --- settings page hosts an inline dictionary browser ------------------ */
+let settingsView = render(h(Settings, { t }));
+const openDictButton = findByTag(settingsView, 'button').find((button) => flattenText([button]) === 'settings.openDict');
+assert.ok(openDictButton, 'settings page offers a dictionary toggle');
+assert.equal(findByClass(settingsView, 'tg-set-item').length, 8, 'lookup shows a short preview list');
+openDictButton.props.onClick();
+settingsView = render(h(Settings, { t }));
+assert.ok(findByClass(settingsView, 'tg-set-item').length > 8, 'dictionary toggle expands the list');
+assert.ok(flattenText(settingsView).includes('settings.dictHint'), 'dictionary hint reports the match count');
+const closeDictButton = findByTag(settingsView, 'button').find((button) => flattenText([button]) === 'settings.closeDict');
+assert.ok(closeDictButton, 'dictionary toggle can be collapsed');
+closeDictButton.props.onClick();
+settingsView = render(h(Settings, { t }));
+assert.equal(findByClass(settingsView, 'tg-set-item').length, 8, 'dictionary collapses back to the preview');
+
 /* --- dictionary mode through the global shortcut ----------------------- */
 const dispatchKey = (event) => {
   for (const listener of keydownListeners.slice()) listener({ preventDefault() {}, stopPropagation() {}, ...event });
@@ -550,6 +565,18 @@ dictTree = render(h(Panel, { t }));
 assert.equal(findByClass(dictTree, 'tg-term').length, 1, 'dictionary search narrows the list');
 dispatchKey({ key: 'Escape' });
 assert.equal(render(h(Panel, { t })).length, 0, 'Escape closes the dictionary');
+
+/* --- macOS renders Option+D / Option+T as "∂" / "†" -------------------- */
+dispatchKey({ key: '∂', code: 'KeyD', altKey: true });
+const optionTree = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(optionTree, 'tg-title')), 'panel.dictionaryTitle', 'Option+D opens the dictionary');
+dispatchKey({ key: 'Escape' });
+assert.equal(render(h(Panel, { t })).length, 0, 'Escape closes the dictionary opened by Option+D');
+dispatchKey({ key: '†', code: 'KeyT', altKey: true });
+const optionLatest = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(optionLatest, 'tg-title')), '计算机术语解释', 'Option+T opens the latest answer');
+dispatchKey({ key: 'Escape' });
+assert.equal(render(h(Panel, { t })).length, 0);
 
 /* --- Alt+T reopens the latest answer ---------------------------------- */
 dispatchKey({ key: 't', altKey: true });
