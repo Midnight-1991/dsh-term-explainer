@@ -29,6 +29,76 @@ const sandbox = {
   },
 };
 vm.runInNewContext(source, sandbox, { filename: 'client.js' });
+const memory = Object.create(null);
+sandbox.window.localStorage = {
+  getItem(key) {
+    return key in memory ? memory[key] : null;
+  },
+  setItem(key, value) {
+    memory[key] = String(value);
+  },
+  removeItem(key) {
+    delete memory[key];
+  },
+  clear() {
+    for (const key of Object.keys(memory)) delete memory[key];
+  },
+};
+
+/* ------------------------------------------------- fake DOM for the modal */
+
+/* Installed before apply(), so the global shortcut effect can register its
+ * document keydown listener; installStyles() uses the same minimal surface. */
+const keydownListeners = [];
+sandbox.document = {
+  activeElement: null,
+  head: { appendChild() {} },
+  body: { appendChild() {} },
+  createElement(tag) {
+    return {
+      tagName: String(tag).toUpperCase(),
+      textContent: '',
+      href: '',
+      download: '',
+      rel: '',
+      setAttribute() {},
+      remove() {},
+      click() {},
+    };
+  },
+  addEventListener(type, fn) {
+    if (type !== 'keydown') return;
+    if (!keydownListeners.includes(fn)) keydownListeners.push(fn);
+  },
+  removeEventListener(type, fn) {
+    const index = keydownListeners.indexOf(fn);
+    if (index >= 0) keydownListeners.splice(index, 1);
+  },
+  querySelector() {
+    return null;
+  },
+  contains() {
+    return false;
+  },
+};
+sandbox.setTimeout = (fn) => {
+  if (typeof fn === 'function') {
+    try {
+      fn();
+    } catch (error) {
+      /* focus attempts are best effort */
+    }
+  }
+  return 1;
+};
+sandbox.clearTimeout = () => {};
+
+const pressEscape = () => {
+  for (const listener of keydownListeners.slice()) {
+    listener({ key: 'Escape', shiftKey: false, preventDefault() {}, stopPropagation() {} });
+  }
+};
+
 assert.equal(typeof factory, 'function', 'client module should call the loader');
 
 /* ---------------------------------------------------------------- React */
@@ -118,7 +188,13 @@ const ctx = {
       assert.ok(dicts.zh && dicts.en, 'both locale dictionaries must be registered');
       assert.equal(dicts.zh['action.label'], '术语');
       assert.ok(dicts.zh['panel.explainTerm'], 'nested-explanation copy must be registered');
+      assert.ok(dicts.zh['settings.title'], 'settings-page copy must be registered');
+      assert.ok(dicts.zh['panel.search'], 'toolbar copy must be registered');
       return () => {};
+    },
+    bind(ns) {
+      assert.equal(ns, 'term-glossary');
+      return (key) => 'L:' + key;
     },
   },
   effect(fn) {
@@ -144,48 +220,12 @@ assert.ok(registrations.has('term-glossary'), 'assistant-actions entry registere
 assert.ok(registrations.has('term-glossary-panel'), 'shell.overlay entry registered');
 assert.equal(registrations.get('term-glossary').options.name, 'conversation.chat.assistant-actions');
 assert.equal(registrations.get('term-glossary-panel').options.name, 'shell.overlay');
+assert.ok(registrations.has('term-glossary-settings'), 'settings.section entry registered');
+assert.equal(registrations.get('term-glossary-settings').options.name, 'settings.section');
+assert.equal(registrations.get('term-glossary-settings').options.label(), 'L:settings.nav');
 
 const dev = sandbox.window.__termGlossaryDev;
 assert.ok(dev && typeof dev.explainSegments === 'function', 'dev hook should be exposed while testing');
-
-/* ------------------------------------------------- fake DOM for the modal */
-
-/* Installed after apply(), so installStyles() keeps taking its no-DOM path. */
-const keydownListeners = [];
-sandbox.document = {
-  activeElement: null,
-  addEventListener(type, fn) {
-    if (type !== 'keydown') return;
-    if (!keydownListeners.includes(fn)) keydownListeners.push(fn);
-  },
-  removeEventListener(type, fn) {
-    const index = keydownListeners.indexOf(fn);
-    if (index >= 0) keydownListeners.splice(index, 1);
-  },
-  querySelector() {
-    return null;
-  },
-  contains() {
-    return false;
-  },
-};
-sandbox.setTimeout = (fn) => {
-  if (typeof fn === 'function') {
-    try {
-      fn();
-    } catch (error) {
-      /* focus attempts are best effort */
-    }
-  }
-  return 1;
-};
-sandbox.clearTimeout = () => {};
-
-const pressEscape = () => {
-  for (const listener of keydownListeners.slice()) {
-    listener({ key: 'Escape', shiftKey: false, preventDefault() {}, stopPropagation() {} });
-  }
-};
 
 /* ------------------------------------------------------- tiny renderer */
 
@@ -422,6 +462,188 @@ const closeButton = findByClass(panelRoot.children, 'tg-close')[0];
 closeButton.props.onClick();
 assert.equal(render(h(Panel, { t })).length, 0, 'panel should unmount after close');
 
+/* ================================================ 1.2.0: dictionary UI ==== */
+
+const findByTag = (nodes, tag) => {
+  const hits = [];
+  const walk = (list) => {
+    for (const node of list) {
+      if (node.type === tag) hits.push(node);
+      if (node.children) walk(node.children);
+    }
+  };
+  walk(nodes);
+  return hits;
+};
+
+/* --- helpers: query filter, sorting, category counts, related terms ---- */
+assert.equal(dev.matchesQuery({ term: 'API 网关', full: 'API Gateway', explanation: '网关' }, 'gateway'), true);
+assert.equal(dev.matchesQuery({ term: 'API 网关', full: 'API Gateway', explanation: '网关' }, '不存在的词'), false);
+const sampleItems = [
+  { term: 'B 项', full: '', category: 'lang', explanation: 'b', count: 1, snippets: [] },
+  { term: 'A 项', full: '', category: 'db', explanation: 'a', count: 3, snippets: [] },
+];
+assert.deepEqual(dev.sortTerms(sampleItems, 'alpha').map((item) => item.term), ['A 项', 'B 项']);
+assert.deepEqual(dev.sortTerms(sampleItems, 'mentions').map((item) => item.term), ['A 项', 'B 项']);
+assert.deepEqual(
+  dev.filterTerms(sampleItems, { query: 'b', category: null, onlyFavorites: false, favorites: null }).map((item) => item.term),
+  ['B 项'],
+);
+assert.equal(dev.categoryCounts([...sampleItems, { term: 'C 项', category: 'lang' }]).lang, 2);
+assert.equal(dev.filterTerms(sampleItems, { query: '', category: 'db', onlyFavorites: false, favorites: null }).length, 1);
+const related = dev.relatedTerms(dev.findEntry('缓存穿透'));
+assert.ok(related.length >= 1 && related.length <= 4, 'related terms are suggested');
+assert.ok(related.every((entry) => dev.findEntry(entry.term)), 'related terms exist in the dictionary');
+
+/* --- export helpers ---------------------------------------------------- */
+const md = dev.exportMarkdown([{ term: 'API 网关', full: 'API Gateway', category: 'server', explanation: '入口网关。', count: 2, snippets: [] }]);
+assert.ok(md.startsWith('| 术语 | 英文全称 | 分类 | 提及次数 | 释义 |'), 'markdown export has a header');
+assert.ok(md.includes('| API 网关 | API Gateway | server | 2 | 入口网关。 |'), 'markdown export keeps a row');
+const csv = dev.exportCsv([{ term: 'A"B', full: '', category: 'lang', explanation: '含,逗号', count: 1, snippets: [] }]);
+assert.equal(csv.split('\r\n')[0], 'term,explanation,context,full_name,category,mentions');
+assert.ok(csv.includes('"A""B"'), 'csv escapes quotes');
+assert.ok(csv.includes('"含,逗号"'), 'csv quotes comma values');
+
+/* --- favorites store persistence -------------------------------------- */
+const favoritesStore = dev.createFavoritesStore();
+assert.equal(favoritesStore.count(), 0, 'favorites start empty');
+assert.equal(favoritesStore.toggle('缓存穿透'), true);
+assert.equal(JSON.stringify(favoritesStore.list()), JSON.stringify(['缓存穿透']));
+assert.ok(sandbox.window.localStorage.getItem(dev.STORAGE_KEYS.favorites).includes('缓存穿透'), 'favorites persist to localStorage');
+assert.equal(dev.createFavoritesStore().count(), 1, 'a fresh store reads persisted favorites');
+favoritesStore.clear();
+assert.equal(dev.createFavoritesStore().count(), 0, 'clear empties the persisted list');
+
+/* --- settings store persistence --------------------------------------- */
+const settingsStore = dev.createSettingsStore();
+assert.equal(settingsStore.get().showAction, true);
+assert.equal(settingsStore.get().contextLimit, 3);
+assert.equal(settingsStore.get().defaultSort, 'mentions');
+settingsStore.update({ contextLimit: 1, defaultSort: 'alpha', showAction: false });
+assert.equal(settingsStore.get().contextLimit, 1);
+assert.equal(dev.createSettingsStore().get().defaultSort, 'alpha', 'settings persist to localStorage');
+settingsStore.update({ contextLimit: 3, defaultSort: 'mentions', showAction: true });
+
+/* --- settings page renders and controls the action pill ---------------- */
+const Settings = registrations.get('term-glossary-settings').Component;
+const settingsTree = render(h(Settings, { t }));
+assert.equal(findByClass(settingsTree, 'tg-settings').length, 1, 'settings section renders');
+assert.ok(flattenText(settingsTree).includes('settings.title'), 'settings section has a title');
+const showActionToggle = findByTag(settingsTree, 'input').find((input) => input.props.type === 'checkbox');
+assert.ok(showActionToggle, 'settings page offers a showAction toggle');
+showActionToggle.props.onChange({ target: { checked: false } });
+assert.equal(render(h(Action, actionProps)).length, 0, 'disabling showAction hides the action pill');
+const restoreToggle = findByTag(render(h(Settings, { t })), 'input').find((input) => input.props.type === 'checkbox');
+restoreToggle.props.onChange({ target: { checked: true } });
+assert.equal(render(h(Action, actionProps)).length, 1, 're-enabling showAction restores the action pill');
+
+/* --- dictionary mode through the global shortcut ----------------------- */
+const dispatchKey = (event) => {
+  for (const listener of keydownListeners.slice()) listener({ preventDefault() {}, stopPropagation() {}, ...event });
+};
+dispatchKey({ key: 'd', altKey: true });
+let dictTree = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(dictTree, 'tg-title')), 'panel.dictionaryTitle', 'Alt+D opens the dictionary');
+assert.equal(findByClass(dictTree, 'tg-term').length, 330, 'dictionary mode lists every term');
+findByClass(dictTree, 'tg-search')[0].props.onChange({ target: { value: 'gRPC' } });
+dictTree = render(h(Panel, { t }));
+assert.equal(findByClass(dictTree, 'tg-term').length, 1, 'dictionary search narrows the list');
+dispatchKey({ key: 'Escape' });
+assert.equal(render(h(Panel, { t })).length, 0, 'Escape closes the dictionary');
+
+/* --- Alt+T reopens the latest answer ---------------------------------- */
+dispatchKey({ key: 't', altKey: true });
+const latestTree = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(latestTree, 'tg-title')), '计算机术语解释', 'Alt+T opens the latest answer terms');
+assert.ok(findByClass(latestTree, 'tg-term').length >= 25);
+dispatchKey({ key: 'Escape' });
+
+/* --- toolbar: search / sort / favorites / category filter -------------- */
+button.props.onClick();
+let tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-toolbar').length, 1, 'toolbar renders');
+assert.ok(findByClass(tree, 'tg-cat').length >= 10, 'all-categories chip plus the categories present in this answer');
+assert.ok(flattenText([findByClass(tree, 'tg-cat')[0]]).startsWith('panel.filterAll'), 'first chip clears the category filter');
+assert.equal(findByClass(tree, 'tg-select')[0].props.value, 'mentions');
+const listCount = findByClass(tree, 'tg-term').length;
+findByClass(tree, 'tg-search')[0].props.onChange({ target: { value: 'gRPC' } });
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-term').length, 1, 'search narrows the visible terms');
+assert.ok(flattenText(tree).includes('gRPC'));
+findByClass(tree, 'tg-search')[0].props.onChange({ target: { value: '' } });
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-term').length, listCount, 'clearing the query restores the list');
+
+const dbChip = findByClass(tree, 'tg-cat').find((chip) => flattenText([chip]).startsWith('db '));
+assert.ok(dbChip, 'category chip for databases exists');
+const dbCount = Number(flattenText([dbChip]).split(' ').pop());
+dbChip.props.onClick();
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-term').length, dbCount, 'category filter limits the list');
+for (const card of findByClass(tree, 'tg-term')) {
+  assert.ok(flattenText(findByClass([card], 'tg-chip')).includes('db'), 'filtered cards belong to the category');
+}
+findByClass(tree, 'tg-cat')[0].props.onClick();
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-term').length, listCount, 'the category filter clears');
+
+findByClass(tree, 'tg-select')[0].props.onChange({ target: { value: 'alpha' } });
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-select')[0].props.value, 'alpha', 'sort mode switches');
+findByClass(tree, 'tg-select')[0].props.onChange({ target: { value: 'mentions' } });
+tree = render(h(Panel, { t }));
+
+/* --- star, filter and unfavorite -------------------------------------- */
+const firstCard = findByClass(tree, 'tg-term')[0];
+const firstCardName = flattenText(findByClass([firstCard], 'tg-term-name'));
+findByClass([firstCard], 'tg-star')[0].props.onClick();
+tree = render(h(Panel, { t }));
+assert.equal(findByClass([findByClass(tree, 'tg-term')[0]], 'tg-star')[0].props['data-on'], 'true', 'star toggles on');
+assert.equal(findByClass(tree, 'tg-filter')[0].props['data-active'], 'false');
+findByClass(tree, 'tg-filter')[0].props.onClick();
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-term').length, 1, 'favorites filter shows only the starred term');
+assert.equal(flattenText(findByClass([findByClass(tree, 'tg-term')[0]], 'tg-term-name')), firstCardName);
+findByClass(tree, 'tg-filter')[0].props.onClick();
+tree = render(h(Panel, { t }));
+assert.equal(findByClass(tree, 'tg-term').length, listCount);
+const starred = findByClass(tree, 'tg-star').find((item) => item.props['data-on'] === 'true');
+assert.ok(starred, 'the starred term stays marked');
+starred.props.onClick();
+tree = render(h(Panel, { t }));
+assert.ok(!sandbox.window.localStorage.getItem(dev.STORAGE_KEYS.favorites).includes(firstCardName), 'unstarring removes the favorite');
+
+/* --- related terms navigate from a drill-down ------------------------- */
+const relatedSeed = findByClass(tree, 'tg-inline-term').find((link) => {
+  const entry = dev.findEntry(link.props['data-term']);
+  return entry && dev.relatedTerms(entry).length > 0;
+});
+assert.ok(relatedSeed, 'some inline term has related terms');
+relatedSeed.props.onClick({ currentTarget: null });
+const relatedTree = render(h(Panel, { t }));
+const relatedChips = findByClass(relatedTree, 'tg-related-chip');
+assert.ok(relatedChips.length >= 1, 'drill-down lists related terms');
+const relatedName = flattenText([relatedChips[0]]);
+relatedChips[0].props.onClick();
+const relatedDetail = render(h(Panel, { t }));
+assert.equal(flattenText(findByClass(relatedDetail, 'tg-title')), relatedName, 'related chip opens its own explanation');
+findByClass(relatedDetail, 'tg-back')[0].props.onClick();
+const seedDetail = render(h(Panel, { t }));
+findByClass(seedDetail, 'tg-back')[0].props.onClick();
+const listAgain = render(h(Panel, { t }));
+assert.ok(findByClass(listAgain, 'tg-toolbar').length === 1, 'back returns to the filtered list');
+
+/* --- footer actions (copy / export) are present and raise no errors ---- */
+const footerButtons = findByClass(tree, 'tg-btn');
+assert.ok(footerButtons.length >= 2, 'footer offers copy and export buttons');
+footerButtons[0].props.onClick();
+footerButtons[1].props.onClick();
+render(h(Panel, { t }));
+
+/* --- Esc still closes the list view ----------------------------------- */
+pressEscape();
+assert.equal(render(h(Panel, { t })).length, 0, 'Esc closes the panel from the list');
+
 /* Long text throughput: 200 KB / ~340 dictionary terms. */
 const big = SAMPLE.repeat(120);
 const started = Date.now();
@@ -434,4 +656,4 @@ const elapsed = Date.now() - started;
 console.log('scan of', big.length, 'chars took', elapsed, 'ms');
 assert.ok(elapsed < 1500, 'scan too slow: ' + elapsed + 'ms');
 
-console.log('OK — registry, scanner, action, panel and nested explanations all behave.');
+console.log('OK — registry, scanner, action, panel, nested explanations, favorites, dictionary and settings all behave.');

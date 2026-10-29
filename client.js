@@ -416,6 +416,567 @@
       const TERM_INDEX = new Map();
       for (const entry of TERMS) TERM_INDEX.set(entry.term, entry);
 
+      /** Display order of dictionary categories (mirrors the CATEGORIES map above). */
+      const CATEGORY_ORDER = [
+        'lang',
+        'web',
+        'server',
+        'db',
+        'net',
+        'devops',
+        'security',
+        'ai',
+        'system',
+        'practice',
+        'harness',
+      ];
+
+      /* ================================================================== *
+       * User state: favorites and preferences (localStorage, never leaves the page)
+       * ================================================================== */
+
+      const STORAGE_KEYS = {
+        favorites: 'dsh-term-explainer/favorites',
+        settings: 'dsh-term-explainer/settings',
+      };
+
+      const DEFAULT_SETTINGS = Object.freeze({ showAction: true, contextLimit: 3, defaultSort: 'mentions' });
+      const SORT_MODES = ['mentions', 'order', 'alpha'];
+
+      function readJson(key, fallback) {
+        try {
+          if (typeof window === 'undefined' || !window.localStorage) return fallback;
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return fallback;
+          const parsed = JSON.parse(raw);
+          return parsed == null ? fallback : parsed;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function writeJson(key, value) {
+        try {
+          if (typeof window === 'undefined' || !window.localStorage) return false;
+          window.localStorage.setItem(key, JSON.stringify(value));
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function createFavoritesStore() {
+        const stored = readJson(STORAGE_KEYS.favorites, []);
+        let terms = new Set(
+          (Array.isArray(stored) ? stored : []).filter((term) => typeof term === 'string' && TERM_INDEX.has(term)),
+        );
+        const listeners = new Set();
+        const emit = () => {
+          for (const listener of listeners) {
+            try {
+              listener();
+            } catch (error) {
+              console.error('[term-glossary] favorites listener failed', error);
+            }
+          }
+        };
+        const persist = () => writeJson(STORAGE_KEYS.favorites, Array.from(terms));
+        return {
+          list: () => Array.from(terms),
+          count: () => terms.size,
+          has: (term) => terms.has(term),
+          toggle(term) {
+            if (!TERM_INDEX.has(term)) return false;
+            if (terms.has(term)) terms.delete(term);
+            else terms.add(term);
+            persist();
+            emit();
+            return terms.has(term);
+          },
+          replace(list) {
+            terms = new Set(
+              (Array.isArray(list) ? list : []).filter((term) => typeof term === 'string' && TERM_INDEX.has(term)),
+            );
+            persist();
+            emit();
+          },
+          clear() {
+            if (terms.size === 0) return;
+            terms = new Set();
+            persist();
+            emit();
+          },
+          subscribe(listener) {
+            listeners.add(listener);
+            return () => {
+              listeners.delete(listener);
+            };
+          },
+        };
+      }
+
+      function createSettingsStore() {
+        const stored = readJson(STORAGE_KEYS.settings, {});
+        const base = stored && typeof stored === 'object' ? stored : {};
+        let settings = {
+          showAction: base.showAction !== false,
+          contextLimit: [1, 2, 3].includes(base.contextLimit) ? base.contextLimit : DEFAULT_SETTINGS.contextLimit,
+          defaultSort: SORT_MODES.includes(base.defaultSort) ? base.defaultSort : DEFAULT_SETTINGS.defaultSort,
+        };
+        const listeners = new Set();
+        const emit = () => {
+          for (const listener of listeners) {
+            try {
+              listener();
+            } catch (error) {
+              console.error('[term-glossary] settings listener failed', error);
+            }
+          }
+        };
+        return {
+          get: () => settings,
+          update(patch) {
+            if (!patch || typeof patch !== 'object') return settings;
+            settings = {
+              ...settings,
+              ...(typeof patch.showAction === 'boolean' ? { showAction: patch.showAction } : null),
+              ...([1, 2, 3].includes(patch.contextLimit) ? { contextLimit: patch.contextLimit } : null),
+              ...(SORT_MODES.includes(patch.defaultSort) ? { defaultSort: patch.defaultSort } : null),
+            };
+            writeJson(STORAGE_KEYS.settings, settings);
+            emit();
+            return settings;
+          },
+          subscribe(listener) {
+            listeners.add(listener);
+            return () => {
+              listeners.delete(listener);
+            };
+          },
+        };
+      }
+
+      /** Re-render the calling component whenever the given store changes. */
+      function useStoreVersion(store) {
+        const [, setVersion] = React.useState(0);
+        React.useEffect(
+          () => store.subscribe(() => setVersion((version) => version + 1)),
+          [store],
+        );
+      }
+
+      /* ================================================================== *
+       * Related terms, search, filtering, sorting and export helpers
+       * ================================================================== */
+
+      // Hand-picked neighbours for the most common clusters; everything else
+      // falls back to the same dictionary category.
+      const RELATED_TERMS = Object.freeze({
+        HTTP: ['HTTPS', 'TLS', 'HTTP/2', 'HTTP/3', 'CORS'],
+        HTTPS: ['TLS', '证书', 'CSP', 'HTTP'],
+        TLS: ['HTTPS', '证书', 'mTLS', '数字签名', '密钥'],
+        mTLS: ['TLS', '证书', '零信任'],
+        SSH: ['TLS', '密钥', '证书'],
+        DNS: ['域名', 'CDN', 'HTTPS'],
+        CDN: ['DNS', '缓存', '负载均衡'],
+        CORS: ['同源策略', 'CSP', 'HTTP'],
+        CSP: ['XSS', '同源策略', 'CORS'],
+        WebSocket: ['SSE', 'HTTP/2', 'QUIC'],
+        SSE: ['WebSocket', 'HTTP/2', '流式输出'],
+        QUIC: ['HTTP/3', 'UDP', 'TCP'],
+        'HTTP/2': ['HTTP', 'HTTPS', 'QUIC', 'TLS'],
+        'HTTP/3': ['QUIC', 'HTTP/2', 'UDP'],
+        TCP: ['UDP', 'QUIC', 'HTTP/2'],
+        VPN: ['NAT', '子网', 'VPC'],
+        NAT: ['子网', 'VPC', 'VPN'],
+        VPC: ['子网', '安全组', 'NAT'],
+        安全组: ['VPC', '子网', '零信任'],
+        域名: ['DNS', 'HTTPS', '证书'],
+        Docker: ['容器', '镜像', 'Kubernetes', 'Pod'],
+        容器: ['Docker', '镜像', 'Kubernetes', 'Pod'],
+        镜像: ['Docker', '容器', '制品'],
+        Kubernetes: ['Pod', 'Helm', '容器', '服务发现', 'Docker'],
+        Pod: ['Kubernetes', '容器', 'Docker'],
+        Helm: ['Kubernetes', '制品', '部署'],
+        CI: ['流水线', '构建', '制品', '测试覆盖'],
+        流水线: ['CI', '构建', '制品'],
+        IaC: ['Terraform', 'Ansible', '配置中心'],
+        Terraform: ['IaC', 'Ansible', '构建'],
+        Ansible: ['IaC', 'Terraform', '配置中心'],
+        Nginx: ['反向代理', '负载均衡', '正向代理'],
+        可观测性: ['链路追踪', '指标', 'SLO'],
+        链路追踪: ['可观测性', '指标', 'QPS'],
+        指标: ['可观测性', '链路追踪', 'SLO', 'SLA'],
+        SLO: ['SLA', '指标', 'QPS'],
+        SLA: ['SLO', '指标', '容灾'],
+        灰度: ['蓝绿部署', '灰度发布', '特性开关'],
+        蓝绿部署: ['灰度发布', '灰度', '回滚'],
+        灰度发布: ['灰度', '蓝绿部署', '回滚'],
+        回滚: ['灰度发布', '蓝绿部署', '热修复'],
+        热更新: ['热修复', '部署', '回滚'],
+        热修复: ['热更新', '回滚', '部署'],
+        部署: ['构建', '制品', '灰度发布', '回滚'],
+        构建: ['制品', '部署', 'CI', '打包器'],
+        制品: ['构建', '部署', '镜像'],
+        服务发现: ['注册中心', '负载均衡', 'Kubernetes'],
+        注册中心: ['服务发现', '配置中心', '负载均衡'],
+        负载均衡: ['反向代理', '服务发现', '注册中心', '高可用'],
+        反向代理: ['正向代理', '负载均衡', 'Nginx'],
+        正向代理: ['反向代理', 'VPN'],
+        'API 网关': ['反向代理', '限流', '微服务'],
+        微服务: ['API 网关', '服务发现', '单体架构', '分布式事务'],
+        熔断: ['限流', '降级', '重试', '背压'],
+        限流: ['熔断', '降级', '背压'],
+        降级: ['熔断', '限流', '容灾'],
+        背压: ['限流', '消息队列', '熔断'],
+        消息队列: ['生产者-消费者', '死信队列', '背压'],
+        死信队列: ['消息队列', '重试', '指数退避'],
+        重试: ['指数退避', '超时', '熔断'],
+        指数退避: ['重试', '超时', '限流'],
+        缓存: ['缓存穿透', '缓存雪崩', 'Redis', '缓冲'],
+        缓存穿透: ['缓存雪崩', '布隆过滤器', '缓存'],
+        缓存雪崩: ['缓存穿透', '布隆过滤器', '缓存', '熔断'],
+        布隆过滤器: ['缓存穿透', '缓存雪崩', '哈希'],
+        Redis: ['缓存', '主从复制', '连接池'],
+        Kafka: ['消息队列', '死信队列', '事务'],
+        Elasticsearch: ['倒排索引', '索引', '向量数据库'],
+        索引: ['覆盖索引', '回表', '慢查询', 'B+ 树'],
+        覆盖索引: ['索引', '回表', '慢查询'],
+        回表: ['覆盖索引', '索引', 'B+ 树'],
+        慢查询: ['索引', '连接池', 'N+1 查询'],
+        连接池: ['慢查询', '缓冲', '分片'],
+        事务: ['分布式事务', '隔离级别', 'ACID', '幂等'],
+        分布式事务: ['两阶段提交', 'Saga', '最终一致性', '事务'],
+        两阶段提交: ['Saga', '分布式事务', '最终一致性'],
+        Saga: ['两阶段提交', '分布式事务', '最终一致性'],
+        最终一致性: ['BASE', 'CAP 定理', '分布式事务'],
+        'CAP 定理': ['BASE', '最终一致性', '一致性哈希'],
+        BASE: ['CAP 定理', '最终一致性', 'ACID'],
+        ACID: ['隔离级别', 'MVCC', '事务'],
+        隔离级别: ['MVCC', 'ACID', '乐观锁'],
+        MVCC: ['隔离级别', 'ACID', 'WAL'],
+        WAL: ['MVCC', '主从复制', 'ACID'],
+        主从复制: ['读写分离', '复制延迟', '分片'],
+        读写分离: ['主从复制', '复制延迟', '负载均衡'],
+        复制延迟: ['主从复制', '读写分离', '最终一致性'],
+        分片: ['分区', '一致性哈希', '水平扩展'],
+        分区: ['分片', '数据仓库', '水平扩展'],
+        乐观锁: ['悲观锁', 'MVCC', '事务'],
+        悲观锁: ['乐观锁', '事务', '隔离级别'],
+        倒排索引: ['Elasticsearch', '索引', '向量数据库'],
+        OLTP: ['OLAP', '数据仓库', '事务'],
+        OLAP: ['OLTP', '数据仓库', '数据湖'],
+        数据仓库: ['数据湖', 'OLAP', 'ETL'],
+        数据湖: ['数据仓库', 'ETL', 'OLAP'],
+        ETL: ['数据仓库', '数据湖', '流水线'],
+        ORM: ['N+1 查询', '连接池', '索引'],
+        'N+1 查询': ['ORM', '慢查询', '连接池'],
+        向量数据库: ['HNSW', '近似最近邻', '嵌入向量', 'RAG'],
+        HNSW: ['近似最近邻', '向量数据库', '嵌入向量'],
+        近似最近邻: ['HNSW', '向量数据库', '嵌入向量'],
+        'B+ 树': ['LSM 树', '索引', '覆盖索引'],
+        'LSM 树': ['B+ 树', 'WAL', '索引'],
+        缓冲: ['缓存', '连接池', 'WAL'],
+        RAG: ['嵌入向量', '向量数据库', 'LLM', '幻觉'],
+        LLM: ['Token', '上下文窗口', 'Prompt', 'Agent'],
+        Token: ['上下文窗口', 'LLM', '批处理'],
+        上下文窗口: ['Token', 'LLM', '上下文压缩'],
+        Prompt: ['提示词工程', 'LLM', '温度'],
+        提示词工程: ['Prompt', '思维链', '幻觉'],
+        幻觉: ['RAG', '提示注入', 'LLM'],
+        嵌入向量: ['向量数据库', 'RAG', 'HNSW', 'Transformer'],
+        微调: ['LoRA', 'SFT', 'RLHF', '预训练'],
+        LoRA: ['微调', 'SFT', '参数'],
+        RLHF: ['SFT', 'DPO', '对齐', '微调'],
+        SFT: ['微调', 'RLHF', 'DPO'],
+        DPO: ['RLHF', 'SFT', '对齐'],
+        对齐: ['RLHF', 'DPO', '幻觉'],
+        'Function Calling': ['工具调用', 'MCP', 'Agent'],
+        MCP: ['Function Calling', '工具调用', 'Agent'],
+        多模态: ['扩散模型', 'Transformer', '嵌入向量'],
+        Transformer: ['注意力机制', '嵌入向量', 'LLM'],
+        注意力机制: ['Transformer', '思维链', '参数'],
+        MoE: ['量化', '蒸馏', '剪枝', '参数'],
+        量化: ['蒸馏', '剪枝', 'MoE'],
+        蒸馏: ['量化', '剪枝', '微调'],
+        剪枝: ['量化', '蒸馏', 'MoE'],
+        批处理: ['推理', '训练', '参数'],
+        过拟合: ['正则化', '梯度下降', '训练'],
+        正则化: ['过拟合', '梯度下降', '损失函数'],
+        梯度下降: ['反向传播', '损失函数', '正则化'],
+        反向传播: ['梯度下降', '损失函数', '训练'],
+        损失函数: ['梯度下降', '反向传播', '过拟合'],
+        推理: ['训练', '预训练', '量化', '上下文窗口'],
+        训练: ['预训练', '微调', '推理'],
+        预训练: ['训练', '微调', 'LLM'],
+        参数: ['微调', '预训练', '量化'],
+        Agent: ['工具调用', 'LLM', '子代理', '技能'],
+        思维链: ['Prompt', '推理', 'Agent'],
+        温度: ['Prompt', 'LLM', '推理'],
+        扩散模型: ['多模态', 'GAN', 'CNN'],
+        CNN: ['RNN', 'LSTM', 'GAN'],
+        RNN: ['LSTM', 'Transformer', 'CNN'],
+        LSTM: ['RNN', 'Transformer', 'CNN'],
+        GAN: ['扩散模型', 'CNN', '多模态'],
+        GC: ['JIT', 'AOT', '内存泄漏'],
+        JIT: ['AOT', '字节码', '编译器'],
+        AOT: ['JIT', '编译器', '字节码'],
+        字节码: ['JIT', '编译器', '解释器'],
+        编译器: ['解释器', '字节码', '链接器'],
+        解释器: ['编译器', '字节码', 'JIT'],
+        链接器: ['编译器', '字节码', 'AOT'],
+        线程: ['进程', '协程', '死锁', '竞态条件'],
+        进程: ['线程', '协程', '上下文切换'],
+        协程: ['线程', '进程', '异步'],
+        死锁: ['竞态条件', '线程', '分布式锁'],
+        竞态条件: ['死锁', '线程', '并发'],
+        内存泄漏: ['GC', '虚拟内存', '进程'],
+        虚拟内存: ['内存泄漏', '上下文切换', '内核'],
+        上下文切换: ['线程', '进程', '协程'],
+        系统调用: ['内核', '虚拟内存', '进程'],
+        内核: ['系统调用', '虚拟内存', '上下文切换'],
+        GPU: ['TPU', 'CUDA', '显存'],
+        TPU: ['GPU', 'CUDA', '显存'],
+        CUDA: ['GPU', '显存', 'TPU'],
+        显存: ['GPU', 'CUDA', 'TPU'],
+        闭包: ['回调', '函数式编程', '副作用'],
+        回调: ['闭包', 'Promise', '事件驱动'],
+        泛型: ['类型推导', '鸭子类型', 'DSL'],
+        正则表达式: ['DSL', 'AST', 'Linter'],
+        柯里化: ['函数式编程', '闭包', 'Lambda'],
+        函数式编程: ['闭包', '副作用', '声明式', '柯里化'],
+        面向对象编程: ['SOLID', '设计模式', '单例模式'],
+        SOLID: ['面向对象编程', '设计模式', '依赖注入'],
+        设计模式: ['面向对象编程', '单例模式', '依赖注入'],
+        中间件: ['依赖注入', '插件', '反向代理'],
+        依赖注入: ['中间件', '装饰器', '反射'],
+        装饰器: ['反射', '依赖注入', '泛型'],
+        反射: ['装饰器', '依赖注入', '类型推导'],
+        序列化: ['反序列化', '类型推导', 'RPC'],
+        反序列化: ['序列化', 'RPC', '反射'],
+        钩子: ['副作用', '生命周期', '事件驱动'],
+        副作用: ['函数式编程', '闭包', '钩子'],
+        生命周期: ['钩子', '状态机', '副作用'],
+        状态机: ['生命周期', '事件驱动', '声明式'],
+        声明式: ['响应式编程', '函数式编程', '状态机'],
+        惰性求值: ['函数式编程', '声明式', '柯里化'],
+        类型推导: ['泛型', '鸭子类型', '声明式'],
+        鸭子类型: ['类型推导', '泛型', '面向对象编程'],
+        单例模式: ['设计模式', '面向对象编程', '依赖注入'],
+        事件驱动: ['回调', '钩子', '响应式编程'],
+        响应式编程: ['声明式', '流式输出', '事件驱动'],
+        流式输出: ['响应式编程', 'SSE', '异步'],
+        并发: ['并行', '异步', '竞态条件', '线程'],
+        并行: ['并发', '异步', '线程'],
+        阻塞: ['异步', '并发', '协程'],
+        异步: ['阻塞', '并发', 'Promise', '回调'],
+        Promise: ['异步', 'async/await', '回调'],
+        'async/await': ['Promise', '异步', '协程'],
+        Lambda: ['函数式编程', '柯里化', '闭包'],
+        DOM: ['虚拟 DOM', '水合', 'SPA'],
+        '虚拟 DOM': ['DOM', '水合', 'React'],
+        SPA: ['SSR', 'CSR', '水合'],
+        SSR: ['CSR', '水合', 'SPA'],
+        CSR: ['SSR', 'SPA', '水合'],
+        水合: ['SSR', 'DOM', '虚拟 DOM'],
+        HMR: ['Vite', 'Webpack', '热更新'],
+        'Tree-shaking': ['打包器', 'Webpack', 'Vite'],
+        打包器: ['Tree-shaking', 'Vite', 'Webpack', '构建'],
+        Vite: ['打包器', 'HMR', 'Webpack'],
+        Webpack: ['打包器', 'Vite', 'Tree-shaking'],
+        React: ['虚拟 DOM', '水合', 'Vue', '状态管理'],
+        Vue: ['React', '状态管理', '虚拟 DOM'],
+        TypeScript: ['JavaScript', '泛型', '类型推导'],
+        JavaScript: ['TypeScript', 'Node.js', 'DOM'],
+        'Node.js': ['npm', '异步', 'JavaScript'],
+        npm: ['Node.js', '语义化版本', '依赖'],
+        PWA: ['WASM', 'SPA', '缓存'],
+        WASM: ['PWA', 'JavaScript', 'JIT'],
+        状态管理: ['React', 'Vue', '响应式编程'],
+        跨域: ['CORS', '同源策略', 'CSP'],
+        埋点: ['可观测性', '指标', '审计日志'],
+        IDE: ['CLI', 'Linter', '静态分析'],
+        Git: ['提交', '分支', '变基', 'Pull Request'],
+        提交: ['Git', '分支', 'Pull Request'],
+        分支: ['Git', '提交', '变基'],
+        变基: ['分支', '提交', 'Git'],
+        'Pull Request': ['代码审查', 'Git', '分支'],
+        代码审查: ['Pull Request', 'Linter', '技术债'],
+        Linter: ['静态分析', '格式化', '代码审查'],
+        静态分析: ['Linter', '格式化', '类型推导'],
+        单元测试: ['集成测试', '测试覆盖', 'TDD'],
+        集成测试: ['单元测试', '端到端测试', '测试覆盖'],
+        端到端测试: ['集成测试', '单元测试', '冒烟测试'],
+        回归测试: ['单元测试', '测试覆盖', '冒烟测试'],
+        测试覆盖: ['单元测试', '集成测试', 'TDD'],
+        Mock: ['单元测试', '集成测试', '端到端测试'],
+        冒烟测试: ['回归测试', '端到端测试', '单元测试'],
+        TDD: ['单元测试', '重构', '测试覆盖'],
+        重构: ['技术债', '代码坏味道', 'TDD'],
+        技术债: ['重构', '代码坏味道', '可维护性'],
+        代码坏味道: ['重构', '技术债', '可维护性'],
+        可维护性: ['重构', '技术债', '代码坏味道'],
+        语义化版本: ['npm', '锁文件', '依赖'],
+        Monorepo: ['依赖', '锁文件', '构建'],
+        格式化: ['Linter', '静态分析', '代码审查'],
+        依赖: ['锁文件', 'npm', '语义化版本'],
+        锁文件: ['依赖', 'npm', '语义化版本'],
+        环境变量: ['配置中心', '凭据', '密钥'],
+        'A/B 测试': ['压测', '指标', '灰度发布'],
+        无障碍: ['DOM', '指标', '可观测性'],
+        Harness: ['Cordis', '插件', 'Bundle', 'Profile'],
+        Cordis: ['Harness', '插件', '槽位'],
+        插件: ['Bundle', '槽位', 'Cordis', 'Harness'],
+        Bundle: ['插件', '补丁', 'Profile'],
+        Profile: ['Bundle', '补丁', 'Harness'],
+        补丁: ['Bundle', 'Profile', '插件'],
+        槽位: ['插件', '投影', 'Cordis'],
+        投影: ['槽位', '会话', 'Bundle'],
+        会话: ['工作区', '投影', '技能'],
+        工具调用: ['Function Calling', 'Agent', '技能'],
+        技能: ['Agent', '工具调用', '工作区', '子代理'],
+        工作区: ['会话', '技能', '子代理'],
+        子代理: ['Agent', '工作区', '技能'],
+        上下文压缩: ['上下文窗口', 'Token', '会话'],
+      });
+
+      function relatedTerms(entry) {
+        if (!entry) return [];
+        const seen = new Set([entry.term]);
+        const related = [];
+        const add = (term) => {
+          if (related.length >= 4 || seen.has(term)) return;
+          const target = TERM_INDEX.get(term);
+          if (!target) return;
+          seen.add(term);
+          related.push(target);
+        };
+        for (const term of RELATED_TERMS[entry.term] || []) add(term);
+        if (related.length >= 4) return related;
+        const start = TERMS.indexOf(entry);
+        for (let offset = 1; offset <= TERMS.length && related.length < 4; offset += 1) {
+          const candidate = TERMS[(start + offset + TERMS.length) % TERMS.length];
+          if (candidate.category === entry.category) add(candidate.term);
+        }
+        return related;
+      }
+
+      function matchesQuery(item, query) {
+        if (!query) return true;
+        const needle = String(query).trim().toLowerCase();
+        if (!needle) return true;
+        return (
+          String(item.term).toLowerCase().includes(needle) ||
+          String(item.full || '').toLowerCase().includes(needle) ||
+          String(item.explanation || '').toLowerCase().includes(needle)
+        );
+      }
+
+      function filterTerms(items, filters) {
+        const query = filters && filters.query;
+        const category = filters && filters.category;
+        const onlyFavorites = filters && filters.onlyFavorites;
+        const favorites = filters && filters.favorites;
+        return (Array.isArray(items) ? items : []).filter((item) => {
+          if (category && item.category !== category) return false;
+          if (onlyFavorites && !(favorites && favorites.has && favorites.has(item.term))) return false;
+          return matchesQuery(item, query);
+        });
+      }
+
+      function sortTerms(items, sort) {
+        const list = (Array.isArray(items) ? items : []).slice();
+        if (sort === 'alpha') {
+          list.sort((a, b) => String(a.term).localeCompare(String(b.term), 'zh-Hans-CN'));
+        } else if (sort === 'mentions') {
+          list.sort((a, b) => (b.count || 0) - (a.count || 0));
+        }
+        return list;
+      }
+
+      function categoryCounts(items) {
+        const counts = {};
+        for (const item of items) counts[item.category] = (counts[item.category] || 0) + 1;
+        return counts;
+      }
+
+      function csvCell(value) {
+        const text = value == null ? '' : String(value);
+        return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+      }
+
+      function snippetLine(item) {
+        const snippet = item && Array.isArray(item.snippets) ? item.snippets[0] : null;
+        if (!snippet) return '';
+        return cleanInline(
+          (snippet.prefix || '') + snippet.before + snippet.hit + snippet.after + (snippet.suffix || ''),
+        ).trim();
+      }
+
+      function exportMarkdown(items) {
+        const rows = ['| 术语 | 英文全称 | 分类 | 提及次数 | 释义 |', '| --- | --- | --- | --- | --- |'];
+        for (const item of items) {
+          const description = String(item.explanation || '').replace(/\|/g, '\\|');
+          rows.push('| ' + [item.term, item.full || '', item.category || '', item.count || 0, description].join(' | ') + ' |');
+        }
+        return rows.join('\n');
+      }
+
+      function exportCsv(items) {
+        const rows = ['term,explanation,context,full_name,category,mentions'];
+        for (const item of items) {
+          rows.push(
+            [item.term, item.explanation, snippetLine(item), item.full || '', item.category || '', item.count || 0]
+              .map(csvCell)
+              .join(','),
+          );
+        }
+        return rows.join('\r\n');
+      }
+
+      function copyText(text) {
+        try {
+          if (
+            typeof navigator !== 'undefined' &&
+            navigator.clipboard &&
+            typeof navigator.clipboard.writeText === 'function'
+          ) {
+            return Promise.resolve(navigator.clipboard.writeText(text)).then(
+              () => true,
+              () => false,
+            );
+          }
+        } catch (error) {
+          /* fall through to unsupported */
+        }
+        return Promise.resolve(false);
+      }
+
+      function downloadText(filename, text, mime) {
+        try {
+          if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof document === 'undefined') return false;
+          const blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.rel = 'noopener';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => {
+            try {
+              URL.revokeObjectURL(url);
+            } catch (error) {
+              /* ignore */
+            }
+          }, 1000);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
       /* ================================================================== *
        * Scanner
        * ================================================================== */
@@ -636,6 +1197,52 @@
         'cat.security': '安全与加密',
         'cat.ai': 'AI 与大模型',
         'cat.system': '系统与底层',
+        'panel.search': '搜索术语…',
+        'panel.clearSearch': '清除搜索',
+        'panel.sort': '排序',
+        'panel.sortMentions': '提及最多',
+        'panel.sortOrder': '出现顺序',
+        'panel.sortAlpha': '名称',
+        'panel.filterAll': '全部',
+        'panel.favorites': '我的收藏',
+        'panel.favoritesOnly': '只看收藏',
+        'panel.favorite': '收藏此术语',
+        'panel.unfavorite': '取消收藏',
+        'panel.related': '相关术语',
+        'panel.copyMarkdown': '复制 Markdown',
+        'panel.downloadCsv': '下载 CSV',
+        'panel.copied': '已复制',
+        'panel.copyFailed': '复制失败，请手动选择',
+        'panel.showing': '显示 {shown} / {total} 条',
+        'panel.dictionaryTitle': '术语词典',
+        'panel.dictionarySubtitle': '共 {count} 条 · 已收藏 {favorites} 条',
+        'panel.noMatch': '没有匹配的术语，换个关键词试试。',
+        'panel.favoritesEmpty': '还没有收藏术语，点击卡片右上角的星标即可收藏。',
+        'settings.nav': '术语',
+        'settings.title': '术语解释',
+        'settings.desc': '解释回答中的计算机术语，内置离线词典；设置与收藏仅保存在本机浏览器，不会上传。',
+        'settings.shortcuts': '快捷键',
+        'settings.shortcutDict': '打开术语词典',
+        'settings.shortcutPanel': '打开最近一条回答的术语面板',
+        'settings.shortcutClose': '关闭面板 / 返回上一级',
+        'settings.behavior': '行为',
+        'settings.showAction': '在已完成回答的操作条显示「术语 N」按钮',
+        'settings.contextLimit': '上下文片段数量',
+        'settings.contextLimitUnit': '条',
+        'settings.defaultSort': '面板默认排序',
+        'settings.openDict': '打开术语词典',
+        'settings.openRecent': '打开最近回答',
+        'settings.openRecentEmpty': '暂无可打开的回答',
+        'settings.favoritesSection': '收藏与导出',
+        'settings.favoritesCount': '已收藏 {count} 条',
+        'settings.exportFavorites': '导出收藏（JSON）',
+        'settings.importFavorites': '导入收藏（JSON）',
+        'settings.clearFavorites': '清空收藏',
+        'settings.clearConfirm': '确定清空全部收藏？',
+        'settings.importFailed': '导入失败：文件格式不正确。',
+        'settings.lookup': '查词',
+        'settings.lookupPlaceholder': '输入术语、英文全称或释义关键词',
+        'settings.lookupEmpty': '没有匹配的术语。',
         'cat.practice': '工程实践',
         'cat.harness': 'DeepSeek Harness',
       };
@@ -669,6 +1276,52 @@
         'cat.security': 'Security & crypto',
         'cat.ai': 'AI & LLMs',
         'cat.system': 'Systems & internals',
+        'panel.search': 'Search terms…',
+        'panel.clearSearch': 'Clear search',
+        'panel.sort': 'Sort',
+        'panel.sortMentions': 'Most mentioned',
+        'panel.sortOrder': 'Answer order',
+        'panel.sortAlpha': 'Name',
+        'panel.filterAll': 'All',
+        'panel.favorites': 'Favorites',
+        'panel.favoritesOnly': 'Favorites only',
+        'panel.favorite': 'Save this term',
+        'panel.unfavorite': 'Remove from favorites',
+        'panel.related': 'Related terms',
+        'panel.copyMarkdown': 'Copy Markdown',
+        'panel.downloadCsv': 'Download CSV',
+        'panel.copied': 'Copied',
+        'panel.copyFailed': 'Copy failed, select manually',
+        'panel.showing': 'Showing {shown} / {total}',
+        'panel.dictionaryTitle': 'Term dictionary',
+        'panel.dictionarySubtitle': '{count} terms · {favorites} saved',
+        'panel.noMatch': 'No matching terms. Try another keyword.',
+        'panel.favoritesEmpty': 'No saved terms yet. Use the star on a term card to save one.',
+        'settings.nav': 'Terms',
+        'settings.title': 'Term explainer',
+        'settings.desc': 'Explains computer-science terms found in assistant answers with a built-in offline dictionary. Preferences and favorites stay in this browser and are never uploaded.',
+        'settings.shortcuts': 'Shortcuts',
+        'settings.shortcutDict': 'Open the term dictionary',
+        'settings.shortcutPanel': 'Open the terms panel of the latest answer',
+        'settings.shortcutClose': 'Close the panel / go back one level',
+        'settings.behavior': 'Behaviour',
+        'settings.showAction': 'Show the “Terms N” button on finished answers',
+        'settings.contextLimit': 'Context snippets',
+        'settings.contextLimitUnit': 'snippets',
+        'settings.defaultSort': 'Default panel sorting',
+        'settings.openDict': 'Open term dictionary',
+        'settings.openRecent': 'Open latest answer',
+        'settings.openRecentEmpty': 'No answer available yet',
+        'settings.favoritesSection': 'Favorites & export',
+        'settings.favoritesCount': '{count} saved',
+        'settings.exportFavorites': 'Export favorites (JSON)',
+        'settings.importFavorites': 'Import favorites (JSON)',
+        'settings.clearFavorites': 'Clear favorites',
+        'settings.clearConfirm': 'Clear all saved terms?',
+        'settings.importFailed': 'Import failed: invalid file.',
+        'settings.lookup': 'Lookup',
+        'settings.lookupPlaceholder': 'Search a term, full name or explanation',
+        'settings.lookupEmpty': 'No matching terms.',
         'cat.practice': 'Engineering practice',
         'cat.harness': 'DeepSeek Harness',
       };
@@ -719,6 +1372,60 @@
 .tg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-top:1px solid var(--dsw-alias-border-l1);font-size:11.5px;line-height:1.4;color:var(--dsw-alias-label-secondary)}
 .tg-foot kbd{font-family:inherit;font-size:10.5px;padding:2px 5px;border-radius:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
 .tg-empty{margin:16px 0;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.tg-toolbar{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+.tg-toolbar-row{display:flex;align-items:center;gap:8px}
+.tg-search{flex:1;min-width:0;height:30px;padding:0 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:inherit;font-size:12.5px;line-height:1}
+.tg-search::placeholder{color:var(--dsw-alias-label-secondary);opacity:.8}
+.tg-search:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px;border-color:var(--dsw-alias-brand-primary)}
+.tg-select{height:30px;padding:0 8px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:inherit;font-size:12px;cursor:pointer}
+.tg-select:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.tg-filter{height:30px;display:inline-flex;align-items:center;gap:5px;padding:0 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);font-family:inherit;font-size:12px;line-height:1;cursor:pointer;white-space:nowrap}
+.tg-filter[data-active="true"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2)}
+.tg-filter:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.tg-cats{display:flex;flex-wrap:wrap;gap:6px}
+.tg-cat{padding:4px 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font-family:inherit;font-size:11.5px;line-height:1.2;cursor:pointer;white-space:nowrap}
+.tg-cat:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
+.tg-cat[data-active="true"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2)}
+.tg-cat:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.tg-star{flex:none;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.tg-star:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-brand-primary)}
+.tg-star[data-on="true"]{color:var(--dsw-alias-brand-primary)}
+.tg-star:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.tg-related{margin:14px 0 0;display:flex;flex-direction:column;gap:6px}
+.tg-related-title{margin:0;font-size:11.5px;color:var(--dsw-alias-label-secondary);opacity:.9}
+.tg-related-list{display:flex;flex-wrap:wrap;gap:6px}
+.tg-related-chip{padding:4px 9px;border:1px dashed var(--dsw-alias-border-l1);border-radius:999px;background:transparent;color:var(--dsw-alias-brand-primary);font-family:inherit;font-size:11.5px;line-height:1.2;cursor:pointer}
+.tg-related-chip:hover{border-style:solid;background:var(--dsw-alias-bg-layer-2)}
+.tg-related-chip:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.tg-foot-actions{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tg-btn{height:24px;display:inline-flex;align-items:center;gap:4px;padding:0 8px;border:1px solid var(--dsw-alias-border-l1);border-radius:7px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);font-family:inherit;font-size:11.5px;line-height:1;cursor:pointer;white-space:nowrap}
+.tg-btn:hover{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
+.tg-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.tg-btn[data-kind="primary"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
+.tg-btn[data-copied="true"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
+.tg-empty-state{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 12px;color:var(--dsw-alias-label-secondary);font-size:13px;text-align:center}
+.tg-settings{display:flex;flex-direction:column;gap:18px;padding:2px 0 6px;max-width:720px}
+.tg-set-head{display:flex;flex-direction:column;gap:6px}
+.tg-set-title{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.tg-set-desc{margin:0;font-size:12.5px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
+.tg-set-group{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--dsw-alias-border-l1)}
+.tg-set-group-title{margin:0;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);opacity:.9}
+.tg-set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.tg-set-row label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.tg-set-hint{font-size:11.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);opacity:.9}
+.tg-set-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tg-set-field{display:flex;flex-direction:column;gap:6px}
+.tg-set-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;padding-right:2px}
+.tg-set-item{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-base);padding:8px 10px}
+.tg-set-item-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.tg-set-item-name{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.tg-set-item-full{font-size:11px;color:var(--dsw-alias-label-secondary);opacity:.85}
+.tg-set-item-desc{margin:4px 0 0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
+.tg-set-item-meta{margin-left:auto;font-size:11px;color:var(--dsw-alias-label-secondary);opacity:.85}
+.tg-kbd-list{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.tg-kbd-list kbd{font-family:inherit;font-size:10.5px;padding:2px 5px;border-radius:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+.tg-list{display:flex;flex-direction:column;gap:10px}
+.tg-detail{display:flex;flex-direction:column;gap:12px}
 @keyframes tg-fade{from{opacity:0}}
 @keyframes tg-pop{from{opacity:0;transform:translateY(6px) scale(.985)}}
 @media (prefers-reduced-motion:reduce){.tg-backdrop,.tg-card{animation:none}}
@@ -819,6 +1526,17 @@
 
       function IconArrowLeft({ size = 16 }) {
         return h('svg', svgProps(size), h('path', { key: 'a', d: 'M19 12H5' }), h('path', { key: 'b', d: 'm12 19-7-7 7-7' }));
+      }
+
+      function IconStar({ size = 13, filled = false }) {
+        return h(
+          'svg',
+          { ...svgProps(size), fill: filled ? 'currentColor' : 'none' },
+          h('path', {
+            key: 'a',
+            d: 'm12 3 2.7 5.7 6.3.9-4.6 4.4 1.1 6.2L12 17.3 6.5 20.2l1.1-6.2L3 9.6l6.3-.9z',
+          }),
+        );
       }
 
       /* ================================================================== *
@@ -922,9 +1640,15 @@
         };
       }
 
-      function TermCard({ item, t, onSelect }) {
+      // The most recently rendered answer (used by the Alt+T shortcut and the settings panel).
+      let latestScan = null;
+
+      function TermCard({ item, t, onSelect, favorites, contextLimit }) {
         const [expanded, setExpanded] = React.useState(false);
-        const hasSnippets = item.snippets.length > 0;
+        const limit = Math.max(1, Math.min(3, contextLimit || 3));
+        const snippets = (Array.isArray(item.snippets) ? item.snippets : []).slice(0, limit);
+        const hasSnippets = snippets.length > 0;
+        const saved = favorites ? favorites.has(item.term) : false;
         return h(
           'article',
           { className: 'tg-term' },
@@ -939,6 +1663,21 @@
               h('span', { className: 'tg-chip' }, categoryLabel(t, item.category)),
               item.count > 1
                 ? h('span', { className: 'tg-chip tg-count' }, t('panel.occurrences', { count: item.count }))
+                : null,
+              favorites
+                ? h(
+                    'button',
+                    {
+                      type: 'button',
+                      className: 'tg-star',
+                      'data-on': saved ? 'true' : 'false',
+                      'aria-pressed': saved,
+                      'aria-label': t(saved ? 'panel.unfavorite' : 'panel.favorite'),
+                      title: t(saved ? 'panel.unfavorite' : 'panel.favorite'),
+                      onClick: () => favorites.toggle(item.term),
+                    },
+                    h(IconStar, { filled: saved }),
+                  )
                 : null,
             ),
           ),
@@ -959,8 +1698,8 @@
                 h(IconChevron, { expanded }),
                 expanded
                   ? t('panel.hideContext')
-                  : item.snippets.length > 1
-                    ? t('panel.context', { count: item.snippets.length })
+                  : snippets.length > 1
+                    ? t('panel.context', { count: snippets.length })
                     : t('panel.contextShort'),
               )
             : null,
@@ -968,18 +1707,131 @@
             ? h(
                 'ul',
                 { className: 'tg-snippets' },
-                item.snippets.map((snippet, index) => h(Snippet, { key: index, snippet })),
+                snippets.map((snippet, index) => h(Snippet, { key: index, snippet })),
               )
             : null,
         );
       }
 
-      function createPanelHost(store) {
+      function Toolbar({
+        t,
+        baseItems,
+        query,
+        onQueryChange,
+        category,
+        onCategoryChange,
+        sort,
+        onSortChange,
+        onlyFavorites,
+        onToggleFavorites,
+        favoritesCount,
+      }) {
+        const counts = categoryCounts(baseItems);
+        const chips = CATEGORY_ORDER.filter((key) => counts[key]).map((key) =>
+          h(
+            'button',
+            {
+              key,
+              type: 'button',
+              className: 'tg-cat',
+              'data-active': category === key ? 'true' : 'false',
+              onClick: () => onCategoryChange(category === key ? null : key),
+            },
+            categoryLabel(t, key) + ' ' + counts[key],
+          ),
+        );
+        return h(
+          'div',
+          { className: 'tg-toolbar' },
+          h(
+            'div',
+            { className: 'tg-toolbar-row' },
+            h('input', {
+              className: 'tg-search',
+              type: 'search',
+              value: query,
+              placeholder: t('panel.search'),
+              'aria-label': t('panel.search'),
+              onChange: (event) => onQueryChange(event.target.value),
+            }),
+            h(
+              'select',
+              {
+                className: 'tg-select',
+                value: sort,
+                'aria-label': t('panel.sort'),
+                title: t('panel.sort'),
+                onChange: (event) => onSortChange(event.target.value),
+              },
+              h('option', { value: 'mentions' }, t('panel.sortMentions')),
+              h('option', { value: 'order' }, t('panel.sortOrder')),
+              h('option', { value: 'alpha' }, t('panel.sortAlpha')),
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'tg-filter',
+                'data-active': onlyFavorites ? 'true' : 'false',
+                'aria-pressed': onlyFavorites,
+                onClick: onToggleFavorites,
+              },
+              '★ ' + t('panel.favoritesOnly') + (favoritesCount ? ' ' + favoritesCount : ''),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'tg-cats' },
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'tg-cat',
+                'data-active': category ? 'false' : 'true',
+                onClick: () => onCategoryChange(null),
+              },
+              t('panel.filterAll') + ' ' + baseItems.length,
+            ),
+            chips,
+          ),
+        );
+      }
+
+      function RelatedSection({ entry, t, onSelect }) {
+        const related = relatedTerms(entry);
+        if (related.length === 0) return null;
+        return h(
+          'section',
+          { className: 'tg-related' },
+          h('p', { className: 'tg-related-title' }, t('panel.related')),
+          h(
+            'div',
+            { className: 'tg-related-list' },
+            related.map((item) =>
+              h(
+                'button',
+                {
+                  key: item.term,
+                  type: 'button',
+                  className: 'tg-related-chip',
+                  onClick: () => onSelect(item),
+                },
+                item.term,
+              ),
+            ),
+          ),
+        );
+      }
+
+      function createPanelHost(store, favorites, settings) {
         return function PanelHost(props) {
           const t = translate(props);
           const state = usePanelState(store);
+          useStoreVersion(favorites);
+          useStoreVersion(settings);
           const open = state.open && state.payload !== null;
           const payload = state.payload;
+          const mode = payload && payload.mode === 'dictionary' ? 'dictionary' : 'scan';
           const cardRef = React.useRef(null);
           const closeRef = React.useRef(null);
           const backRef = React.useRef(null);
@@ -988,14 +1840,34 @@
           stackRef.current = stack;
           const depthRef = React.useRef(0);
           const pendingFocusRef = React.useRef(null);
+          const [query, setQuery] = React.useState('');
+          const [category, setCategory] = React.useState(null);
+          const [onlyFavorites, setOnlyFavorites] = React.useState(false);
+          const [sort, setSort] = React.useState(settings.get().defaultSort);
+          const [copied, setCopied] = React.useState('');
+          const copyTimerRef = React.useRef(null);
 
           const close = React.useCallback(() => store.close(), [store]);
 
-          // Opening a message always starts on the term list, never mid-drill.
+          // Opening a message (or the dictionary) always starts on its list view.
           React.useEffect(() => {
-            setStack([]);
+            const config = settings.get();
+            setQuery('');
+            setCategory(null);
+            setOnlyFavorites(false);
+            setCopied('');
+            setSort(SORT_MODES.includes(config.defaultSort) ? config.defaultSort : 'mentions');
             pendingFocusRef.current = null;
-          }, [open, payload]);
+            if (payload && payload.seed && TERM_INDEX.has(payload.seed)) setStack([TERM_INDEX.get(payload.seed)]);
+            else setStack([]);
+          }, [open, payload, settings]);
+
+          React.useEffect(
+            () => () => {
+              if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+            },
+            [],
+          );
 
           const focusTermButton = React.useCallback((term) => {
             const card = cardRef.current;
@@ -1020,6 +1892,7 @@
           }, []);
 
           const pushTerm = React.useCallback((entry) => {
+            if (!entry || !entry.term) return;
             pendingFocusRef.current = entry.term;
             setStack((previous) => {
               const index = previous.findIndex((item) => item.term === entry.term);
@@ -1109,19 +1982,55 @@
 
           if (!open || !payload) return null;
 
+          const config = settings.get();
+          const contextLimit = config.contextLimit;
           const scan = payload.scan;
-          const items = scan && Array.isArray(scan.unique) ? scan.unique : [];
+          const scanItems = scan && Array.isArray(scan.unique) ? scan.unique : [];
+          const baseItems =
+            mode === 'dictionary'
+              ? TERMS.map((entry) => ({
+                  term: entry.term,
+                  full: entry.full,
+                  category: entry.category,
+                  explanation: entry.explanation,
+                  count: 0,
+                  snippets: [],
+                }))
+              : scanItems;
+          const items = sortTerms(filterTerms(baseItems, { query, category, onlyFavorites, favorites }), sort);
+          const favoritesCount = favorites.count();
           const detail = stack.length > 0 ? stack[stack.length - 1] : null;
-          const detailItem = detail ? buildDetailItem(detail, items) : null;
+          const detailItem = detail ? buildDetailItem(detail, scanItems) : null;
+
+          const title = detail
+            ? detail.term
+            : mode === 'dictionary'
+              ? t('panel.dictionaryTitle')
+              : t('panel.title');
           const subtitle = detail
-            ? [
-                showFull(detail) ? detail.full : '',
-                categoryLabel(t, detail.category),
-                t('panel.detailHint'),
-              ]
+            ? [showFull(detail) ? detail.full : '', categoryLabel(t, detail.category), t('panel.detailHint')]
                 .filter(Boolean)
                 .join(' · ')
-            : t('panel.subtitle', { count: items.length, total: scan ? scan.total : 0 });
+            : mode === 'dictionary'
+              ? t('panel.dictionarySubtitle', { count: TERMS.length, favorites: favoritesCount })
+              : t('panel.subtitle', { count: scanItems.length, total: scan ? scan.total : 0 });
+
+          const flashCopied = (value) => {
+            setCopied(value);
+            if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+            copyTimerRef.current = setTimeout(() => setCopied(''), 1800);
+          };
+          const copyMarkdown = () => {
+            copyText(exportMarkdown(items)).then((okay) => flashCopied(okay ? t('panel.copied') : t('panel.copyFailed')));
+          };
+          const downloadCsv = () => {
+            downloadText('dsh-term-explainer.csv', exportCsv(items), 'text/csv;charset=utf-8');
+          };
+
+          const footerLeft =
+            mode === 'dictionary'
+              ? t('panel.dictionary', { count: TERMS.length })
+              : t('panel.showing', { shown: items.length, total: baseItems.length });
 
           return h(
             'div',
@@ -1162,7 +2071,7 @@
                 h(
                   'div',
                   { className: 'tg-head-text' },
-                  h('h2', { className: 'tg-title', id: TITLE_ID }, detail ? detail.term : t('panel.title')),
+                  h('h2', { className: 'tg-title', id: TITLE_ID }, title),
                   h('p', { className: 'tg-subtitle' }, subtitle),
                 ),
                 h(
@@ -1182,23 +2091,84 @@
                 'div',
                 { className: 'tg-body' },
                 detail
-                  ? h(TermCard, { key: 'detail-' + detail.term, item: detailItem, t, onSelect: pushTerm })
-                  : items.length === 0
-                    ? h('p', { className: 'tg-empty' }, t('panel.empty'))
-                    : items.map((item) => h(TermCard, { key: item.term, item, t, onSelect: pushTerm })),
+                  ? h(
+                      'div',
+                      { className: 'tg-detail' },
+                      h(TermCard, {
+                        key: 'detail-' + detail.term,
+                        item: detailItem,
+                        t,
+                        onSelect: pushTerm,
+                        favorites,
+                        contextLimit,
+                      }),
+                      h(RelatedSection, { entry: detail, t, onSelect: pushTerm }),
+                    )
+                  : h(
+                      'div',
+                      { className: 'tg-list' },
+                      h(Toolbar, {
+                        t,
+                        baseItems,
+                        query,
+                        onQueryChange: setQuery,
+                        category,
+                        onCategoryChange: setCategory,
+                        sort,
+                        onSortChange: setSort,
+                        onlyFavorites,
+                        onToggleFavorites: () => setOnlyFavorites((value) => !value),
+                        favoritesCount,
+                      }),
+                      baseItems.length === 0
+                        ? h('p', { className: 'tg-empty' }, t('panel.empty'))
+                        : items.length === 0
+                          ? h('div', { className: 'tg-empty-state' }, t('panel.noMatch'))
+                          : items.map((item) =>
+                              h(TermCard, {
+                                key: item.term,
+                                item,
+                                t,
+                                onSelect: pushTerm,
+                                favorites,
+                                contextLimit,
+                              }),
+                            ),
+                    ),
               ),
               h(
                 'footer',
                 { className: 'tg-foot' },
-                h('span', null, t('panel.dictionary', { count: TERMS.length }), ' · ', t('panel.languageNote')),
-                h('span', null, h('kbd', null, 'Esc'), ' ', detail ? t('panel.escBack') : t('panel.escHint')),
+                h(
+                  'span',
+                  null,
+                  footerLeft + ' · ' + t('settings.favoritesCount', { count: favoritesCount }) + ' · ' + t('panel.languageNote'),
+                ),
+                h(
+                  'span',
+                  { className: 'tg-foot-actions' },
+                  detail
+                    ? null
+                    : h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'tg-btn',
+                          'data-copied': copied ? 'true' : 'false',
+                          onClick: copyMarkdown,
+                        },
+                        copied || t('panel.copyMarkdown'),
+                      ),
+                  detail ? null : h('button', { type: 'button', className: 'tg-btn', onClick: downloadCsv }, t('panel.downloadCsv')),
+                  h('span', null, h('kbd', null, 'Esc'), ' ', detail ? t('panel.escBack') : t('panel.escHint')),
+                ),
               ),
             ),
           );
         };
       }
 
-      function createTermAction(store) {
+      function createTermAction(store, settings) {
         return function TermAction(props) {
           const t = translate(props);
           const messageId = props && props.messageId;
@@ -1236,12 +2206,19 @@
             }
           }, [text]);
 
-          const openPanel = React.useCallback(() => {
-            if (!scan) return;
-            store.open({ messageId, text, scan });
+          useStoreVersion(settings);
+          const showAction = settings.get().showAction;
+
+          React.useEffect(() => {
+            if (scan && scan.unique.length > 0) latestScan = { messageId, text, scan };
           }, [messageId, text, scan]);
 
-          if (!scan || scan.unique.length === 0) return null;
+          const openPanel = React.useCallback(() => {
+            if (!scan) return;
+            store.open({ mode: 'scan', messageId, text, scan });
+          }, [messageId, text, scan]);
+
+          if (!showAction || !scan || scan.unique.length === 0) return null;
 
           return h(
             'button',
@@ -1259,6 +2236,230 @@
         };
       }
 
+      function createSettingsSection({ store, favorites, settings }) {
+        return function SettingsSection(props) {
+          const t = translate(props);
+          useStoreVersion(favorites);
+          useStoreVersion(settings);
+          const config = settings.get();
+          const [lookupQuery, setLookupQuery] = React.useState('');
+          const [importError, setImportError] = React.useState(false);
+          const fileRef = React.useRef(null);
+          const favoritesCount = favorites.count();
+          const latest = latestScan;
+          const lookup = filterTerms(TERMS, { query: lookupQuery }).slice(0, 8);
+
+          const exportFavorites = () => {
+            downloadText(
+              'dsh-term-explainer-favorites.json',
+              JSON.stringify(favorites.list(), null, 2),
+              'application/json;charset=utf-8',
+            );
+          };
+
+          const importFavorites = (event) => {
+            const file = event && event.target && event.target.files && event.target.files[0];
+            if (!file || typeof FileReader !== 'function') return;
+            try {
+              setImportError(false);
+              const reader = new FileReader();
+              reader.onload = () => {
+                try {
+                  const parsed = JSON.parse(String(reader.result == null ? '' : reader.result));
+                  if (!Array.isArray(parsed)) throw new Error('invalid');
+                  favorites.replace(parsed);
+                } catch (error) {
+                  setImportError(true);
+                }
+              };
+              reader.onerror = () => setImportError(true);
+              reader.readAsText(file);
+            } catch (error) {
+              setImportError(true);
+            }
+          };
+
+          const clearFavorites = () => {
+            const confirmed =
+              typeof window !== 'undefined' && typeof window.confirm === 'function'
+                ? window.confirm(t('settings.clearConfirm'))
+                : true;
+            if (confirmed) favorites.clear();
+          };
+
+          const openDictionary = () => store.open({ mode: 'dictionary' });
+          const openLatest = () => {
+            if (!latest) return;
+            store.open({ mode: 'scan', messageId: latest.messageId, text: latest.text, scan: latest.scan });
+          };
+
+          return h(
+            'div',
+            { className: 'tg-settings' },
+            h(
+              'div',
+              { className: 'tg-set-head' },
+              h('h3', { className: 'tg-set-title' }, t('settings.title')),
+              h('p', { className: 'tg-set-desc' }, t('settings.desc')),
+            ),
+            h(
+              'div',
+              { className: 'tg-set-group' },
+              h('p', { className: 'tg-set-group-title' }, t('settings.lookup')),
+              h(
+                'div',
+                { className: 'tg-set-field' },
+                h('input', {
+                  className: 'tg-search',
+                  type: 'search',
+                  value: lookupQuery,
+                  placeholder: t('settings.lookupPlaceholder'),
+                  'aria-label': t('settings.lookup'),
+                  onChange: (event) => setLookupQuery(event.target.value),
+                }),
+                lookupQuery && lookup.length === 0
+                  ? h('p', { className: 'tg-set-hint' }, t('settings.lookupEmpty'))
+                  : null,
+                lookup.length > 0
+                  ? h(
+                      'div',
+                      { className: 'tg-set-list' },
+                      lookup.map((entry) =>
+                        h(
+                          'article',
+                          { key: entry.term, className: 'tg-set-item' },
+                          h(
+                            'div',
+                            { className: 'tg-set-item-head' },
+                            h('span', { className: 'tg-set-item-name' }, entry.term),
+                            showFull(entry) ? h('span', { className: 'tg-set-item-full' }, entry.full) : null,
+                            h('span', { className: 'tg-set-item-meta' }, categoryLabel(t, entry.category)),
+                          ),
+                          h('p', { className: 'tg-set-item-desc' }, entry.explanation),
+                        ),
+                      ),
+                    )
+                  : null,
+              ),
+              h(
+                'div',
+                { className: 'tg-set-actions' },
+                h(
+                  'button',
+                  { type: 'button', className: 'tg-btn', 'data-kind': 'primary', onClick: openDictionary },
+                  t('settings.openDict'),
+                ),
+                h(
+                  'button',
+                  { type: 'button', className: 'tg-btn', disabled: !latest, onClick: openLatest },
+                  latest ? t('settings.openRecent') : t('settings.openRecentEmpty'),
+                ),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'tg-set-group' },
+              h('p', { className: 'tg-set-group-title' }, t('settings.behavior')),
+              h(
+                'div',
+                { className: 'tg-set-row' },
+                h(
+                  'label',
+                  null,
+                  h('input', {
+                    type: 'checkbox',
+                    checked: config.showAction,
+                    onChange: (event) => settings.update({ showAction: Boolean(event.target.checked) }),
+                  }),
+                  h('span', null, t('settings.showAction')),
+                ),
+              ),
+              h(
+                'div',
+                { className: 'tg-set-row' },
+                h('label', null, h('span', null, t('settings.contextLimit'))),
+                h(
+                  'div',
+                  { className: 'tg-set-actions' },
+                  [1, 2, 3].map((value) =>
+                    h(
+                      'button',
+                      {
+                        key: value,
+                        type: 'button',
+                        className: 'tg-btn',
+                        'data-kind': config.contextLimit === value ? 'primary' : null,
+                        onClick: () => settings.update({ contextLimit: value }),
+                      },
+                      String(value) + ' ' + t('settings.contextLimitUnit'),
+                    ),
+                  ),
+                ),
+              ),
+              h(
+                'div',
+                { className: 'tg-set-row' },
+                h('label', null, h('span', null, t('settings.defaultSort'))),
+                h(
+                  'select',
+                  {
+                    className: 'tg-select',
+                    value: config.defaultSort,
+                    onChange: (event) => settings.update({ defaultSort: event.target.value }),
+                  },
+                  h('option', { value: 'mentions' }, t('panel.sortMentions')),
+                  h('option', { value: 'order' }, t('panel.sortOrder')),
+                  h('option', { value: 'alpha' }, t('panel.sortAlpha')),
+                ),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'tg-set-group' },
+              h('p', { className: 'tg-set-group-title' }, t('settings.favoritesSection')),
+              h('p', { className: 'tg-set-hint' }, t('settings.favoritesCount', { count: favoritesCount })),
+              h(
+                'div',
+                { className: 'tg-set-actions' },
+                h('button', { type: 'button', className: 'tg-btn', onClick: exportFavorites }, t('settings.exportFavorites')),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'tg-btn',
+                    onClick: () => {
+                      if (fileRef.current) fileRef.current.click();
+                    },
+                  },
+                  t('settings.importFavorites'),
+                ),
+                h('button', { type: 'button', className: 'tg-btn', onClick: clearFavorites }, t('settings.clearFavorites')),
+                h('input', {
+                  type: 'file',
+                  accept: 'application/json,.json',
+                  ref: fileRef,
+                  style: { display: 'none' },
+                  onChange: importFavorites,
+                }),
+              ),
+              importError ? h('p', { className: 'tg-set-hint' }, t('settings.importFailed')) : null,
+            ),
+            h(
+              'div',
+              { className: 'tg-set-group' },
+              h('p', { className: 'tg-set-group-title' }, t('settings.shortcuts')),
+              h(
+                'div',
+                { className: 'tg-kbd-list' },
+                h('span', null, h('kbd', null, 'Alt+D'), ' ', t('settings.shortcutDict')),
+                h('span', null, h('kbd', null, 'Alt+T'), ' ', t('settings.shortcutPanel')),
+                h('span', null, h('kbd', null, 'Esc'), ' ', t('settings.shortcutClose')),
+              ),
+            ),
+          );
+        };
+      }
+
       /* ================================================================== *
        * Plugin entry
        * ================================================================== */
@@ -1272,6 +2473,22 @@
           scanText,
           explainSegments,
           findEntry: (term) => TERM_INDEX.get(term),
+          relatedTerms,
+          matchesQuery,
+          filterTerms,
+          sortTerms,
+          categoryCounts,
+          exportMarkdown,
+          exportCsv,
+          createFavoritesStore,
+          createSettingsStore,
+          CATEGORY_ORDER,
+          DEFAULT_SETTINGS,
+          STORAGE_KEYS,
+          rememberScan: (payload) => {
+            latestScan = payload;
+          },
+          getLatestScan: () => latestScan,
         };
       }
 
@@ -1279,6 +2496,9 @@
         inject: ['slots', 'locale'],
         apply(ctx) {
           const store = createPanelStore();
+          const favorites = createFavoritesStore();
+          const settings = createSettingsStore();
+          const boundT = typeof ctx.locale.bind === 'function' ? ctx.locale.bind(NS) : (key) => key;
 
           ctx.effect(() => ctx.locale.register(NS, { zh: COPY_ZH, en: COPY_EN }), 'term-glossary: copy');
 
@@ -1291,6 +2511,31 @@
             };
           }, 'term-glossary: styles');
 
+          // Alt+D opens the dictionary; Alt+T re-opens the latest answer's terms panel.
+          ctx.effect(() => {
+            if (typeof document === 'undefined') return undefined;
+            const onKeyDown = (event) => {
+              if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+              const target = event.target;
+              const tag = target && target.tagName ? String(target.tagName) : '';
+              if (target && (target.isContentEditable === true || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')) {
+                return;
+              }
+              const key = typeof event.key === 'string' ? event.key.toLowerCase() : '';
+              if (key === 'd') {
+                event.preventDefault();
+                store.open({ mode: 'dictionary' });
+                return;
+              }
+              if (key === 't' && latestScan) {
+                event.preventDefault();
+                store.open({ mode: 'scan', messageId: latestScan.messageId, text: latestScan.text, scan: latestScan.scan });
+              }
+            };
+            document.addEventListener('keydown', onKeyDown, true);
+            return () => document.removeEventListener('keydown', onKeyDown, true);
+          }, 'term-glossary: shortcuts');
+
           ctx.slots.inject('conversation.chat.assistant-actions', () =>
             ctx.slots.register(
               {
@@ -1299,7 +2544,7 @@
                 order: 20,
                 locale: NS,
               },
-              createTermAction(store),
+              createTermAction(store, settings),
             ),
           );
 
@@ -1311,7 +2556,20 @@
                 order: 40,
                 locale: NS,
               },
-              createPanelHost(store),
+              createPanelHost(store, favorites, settings),
+            ),
+          );
+
+          ctx.slots.inject('settings.section', () =>
+            ctx.slots.register(
+              {
+                name: 'settings.section',
+                id: 'term-glossary-settings',
+                order: 20,
+                locale: NS,
+                label: () => boundT('settings.nav'),
+              },
+              createSettingsSection({ store, favorites, settings }),
             ),
           );
         },
